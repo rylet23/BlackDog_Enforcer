@@ -1,34 +1,57 @@
-# test_pyserial.py
+# test_motor.py
 import serial
 import time
-import struct
 
 port = '/dev/ttyUSB0'
 baudrate = 115200
 
-# Connect
 ser = serial.Serial(port, baudrate, timeout=1)
 print(f"Connected to {port}")
 
-# Stop any existing scan
-ser.write(bytes([0xA5, 0x25]))  # STOP command
+# Send motor start command with PWM
+# For A2M8, we need to send a specific motor control command
+print("Sending motor start command...")
+
+# Stop first
+ser.write(bytes([0xA5, 0x25]))  # STOP
 time.sleep(0.5)
 ser.reset_input_buffer()
 
+# Reset device
+print("Resetting device...")
+ser.write(bytes([0xA5, 0x40]))  # RESET
+time.sleep(2)
+
+# Set motor PWM (A2M8 specific - send PWM value)
+# Format: [0xA5, 0xF0, 0x02, PWM_LSB, PWM_MSB, Checksum]
+# Default PWM: 660 (0x0294)
+print("Setting motor PWM...")
+pwm_value = 660
+pwm_lsb = pwm_value & 0xFF
+pwm_msb = (pwm_value >> 8) & 0xFF
+checksum = (0xA5 + 0xF0 + 0x02 + pwm_lsb + pwm_msb) & 0xFF
+
+motor_cmd = bytes([0xA5, 0xF0, 0x02, pwm_lsb, pwm_msb, checksum])
+ser.write(motor_cmd)
+time.sleep(1)
+
+print("Motor should be spinning now - do you hear/see it?")
+input("Press Enter to continue...")
+
 # Start scan
-ser.write(bytes([0xA5, 0x20]))  # SCAN command
+print("Starting scan...")
+ser.write(bytes([0xA5, 0x20]))  # SCAN
 time.sleep(0.5)
 
-# Read descriptor (7 bytes)
+# Read descriptor
 descriptor = ser.read(7)
-print(f"Descriptor: {descriptor.hex()}")
+print(f"Descriptor: {descriptor.hex() if descriptor else 'None'}")
 
-# Read some data points
-print("\nReading scan data:")
-for i in range(20):
+# Read data
+print("\nReading data points...")
+for i in range(30):
     raw = ser.read(5)
     if len(raw) == 5:
-        # Parse
         start_flag = ((raw[0] & 0x01) == 1) and ((raw[0] & 0x02) == 0)
         angle_raw = ((raw[1] & 0x0F) << 8) | raw[2]
         angle = angle_raw / 64.0
@@ -37,9 +60,17 @@ for i in range(20):
 
         if start_flag:
             print("--- NEW SCAN ---")
-        print(f"Point {i}: {angle:.1f}° = {distance:.1f}mm")
+        if distance > 0:
+            print(f"{angle:.1f}° = {distance:.1f}mm")
 
-# Stop
-ser.write(bytes([0xA5, 0x25]))
+# Stop motor
+print("\nStopping motor...")
+ser.write(bytes([0xA5, 0x25]))  # STOP
+time.sleep(0.5)
+
+# Set PWM to 0 to stop motor
+motor_cmd = bytes([0xA5, 0xF0, 0x02, 0x00, 0x00, 0x97])
+ser.write(motor_cmd)
+
 ser.close()
-print("\nDone!")
+print("Done!")

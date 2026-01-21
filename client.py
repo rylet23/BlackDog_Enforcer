@@ -2,6 +2,7 @@ import socket
 import threading
 import json
 import time
+import drive
 from collections import deque
 
 
@@ -75,6 +76,13 @@ class LidarClient:
         else:
             # Default processing
             print(f"LIDAR Data: {data}")
+
+    def drive(self, data):
+        print("Driving")
+        print("Driving")
+        print("Driving")
+        print("Driving")
+        print("Driving")
 
     def register_callback(self, callback_function):
         """Register a function to process each data point as it arrives"""

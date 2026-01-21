@@ -56,6 +56,9 @@ class LidarClient:
                         # Process the LIDAR data
                         self.process_lidar_data(message)
 
+                        #drive based on lidar data
+                        self.drive(message)
+
                     except json.JSONDecodeError:
                         # Incomplete JSON, wait for more data
                         break
@@ -78,11 +81,14 @@ class LidarClient:
             print(f"LIDAR Data: {data}")
 
     def drive(self, data):
-        print("Driving")
-        print("Driving")
-        print("Driving")
-        print("Driving")
-        print("Driving")
+        if data:
+            drive.set_throttle(50) #when lidar data is received, move forward at 50% throttle
+            time.sleep(10)          #for 10 seconds
+            drive.set_throttle(0)  #stop
+            time.sleep(3) 
+            drive.set_steering(50) #steer right at 50%
+            drive.set_throttle(30)
+            time.sleep(10)
 
     def register_callback(self, callback_function):
         """Register a function to process each data point as it arrives"""

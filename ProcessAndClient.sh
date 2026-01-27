@@ -3,7 +3,7 @@
 # This script receives lidar data and controls the RC car
 
 # Configuration
-SCRIPTS_PATH="$HOME/BlackDog_Enforcer"
+SCRIPTS_PATH="$/PycharmProjects/BlackDog_Enforcer"
 CLIENT_SCRIPT="$SCRIPTS_PATH/client.py"
 PROCESSOR_SCRIPT="$SCRIPTS_PATH/Lidar_Data_Processor.py"
 CONTROLLER_SCRIPT="$SCRIPTS_PATH/car_controller.py"

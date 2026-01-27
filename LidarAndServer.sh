@@ -37,7 +37,7 @@ cleanup() {
         kill -9 $LIDAR_PID 2>/dev/null
     fi
 
-    echo -e "${GREEN}Server stopped${NC}"
+    echo -e "${GREEN}Lidar stopped${NC}"
     exit 0
 }
 

@@ -28,7 +28,6 @@ done
 # Check server IP is set
 if [ "$SERVER_IP" == "10.33.239.139" ]; then
     echo -e "${YELLOW}Warning: Using default server IP: $SERVER_IP${NC}"
-    echo -e "${YELLOW}Edit this script to set your Pi 5's IP address${NC}"
     echo ""
 fi
 

@@ -56,7 +56,7 @@ LIDAR_SDK_PATH="$HOME/rplidar_sdk"
 ULTRA_SIMPLE="$LIDAR_SDK_PATH/output/Linux/Release/ultra_simple"
 LIDAR_PORT="/dev/ttyUSB0"
 BAUDRATE="115200"
-SERVER_SCRIPT="$HOME/BlackDog_Enforcer/lidar_server.py"
+SERVER_SCRIPT="$HOME/BlackDog_Enforcer/server.py"
 
 # Colors for output
 GREEN='\033[0;32m'

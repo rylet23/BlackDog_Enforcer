@@ -3,10 +3,10 @@
 # This script receives lidar data and controls the RC car
 
 # Configuration
-SCRIPTS_PATH="$HOME/PycharmProjects/BlackDog_Enforcer"
+SCRIPTS_PATH="$HOME/BlackDog_Enforcer"
 CLIENT_SCRIPT="$SCRIPTS_PATH/client.py"
 PROCESSOR_SCRIPT="$SCRIPTS_PATH/Lidar_Data_Processor.py"
-CONTROLLER_SCRIPT="$SCRIPTS_PATH/car_controller.py"
+CONTROLLER_SCRIPT="$SCRIPTS_PATH/Car_Controller.py"
 SERVER_IP="10.33.239.139"  # Pi 5's IP address
 
 # Colors for output

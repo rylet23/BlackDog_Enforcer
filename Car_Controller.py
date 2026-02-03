@@ -70,7 +70,7 @@ def control_car(target_data):
 def main():
     """
     Read processed lidar data (JSON) from stdin and control car.
-    Usage: python3 lidar_client.py | python3 lidar_processor.py | python3 car_controller.py
+    Usage: ./ProcessAndClient.sh | python3 lidar_processor.py | python3 car_controller.py
     """
     print("Car controller started. Waiting for target data...", file=sys.stderr)
 

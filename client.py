@@ -2,7 +2,7 @@ import socket
 import sys
 
 # Configuration
-SERVER_IP = '10.33.239.139'  # Replace with Pi 5's IP address
+SERVER_IP = '10.33.239.139'
 SERVER_PORT = 5555
 BUFFER_SIZE = 4096
 
@@ -15,9 +15,9 @@ def run_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
-        print(f"Connecting to {SERVER_IP}:{SERVER_PORT}...", file=sys.stderr)
+#        print(f"Connecting to {SERVER_IP}:{SERVER_PORT}...", file=sys.stderr)
         client_socket.connect((SERVER_IP, SERVER_PORT))
-        print("Connected to lidar server!", file=sys.stderr)
+ #       print("Connected to lidar server!", file=sys.stderr)
 
         while True:
             # Receive data

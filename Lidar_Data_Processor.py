@@ -49,7 +49,11 @@ def process_scan(scan_data):
         'valid_points': len(valid_points),
         'total_points': len(scan_data)
     }
-
+def pull_into_map(total_json):
+    print("Pulled")
+    
+    #print("angle", angle)
+    #print("distance", distance)
 
 def main():
     """
@@ -58,7 +62,7 @@ def main():
     """
     scan_data = []
 
-    print("Lidar processor started. Waiting for data...", file=sys.stderr)
+#    print("Lidar processor started. Waiting for data...", file=sys.stderr)
 
     try:
         for line in sys.stdin:
@@ -69,7 +73,9 @@ def main():
                 if point['is_new_scan'] and len(scan_data) > 0:
                     # Process the complete scan
                     result = process_scan(scan_data)
-                    print(json.dumps(result))
+                    #print(json.dumps(result))
+                    total_json = json.dumps(result)
+                    pull_into_map(total_json)
                     sys.stdout.flush()
 
                     # Start new scan

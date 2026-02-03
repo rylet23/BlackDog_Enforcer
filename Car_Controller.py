@@ -38,7 +38,7 @@ def control_car(target_data):
     angle = target_data['angle']
     distance = target_data['distance']
 
-    print(f"Target: {angle:.1f}° at {distance:.1f}mm (Q:{target_data['quality']})", file=sys.stderr)
+#    print(f"Target: {angle:.1f}° at {distance:.1f}mm (Q:{target_data['quality']})", file=sys.stderr)
 
     # Decision logic
     if distance < STOP_DISTANCE:
@@ -48,7 +48,7 @@ def control_car(target_data):
     else:
         direction = calculate_steering(angle)
         action = direction
-        print(f"  ACTION: {direction.upper()}", file=sys.stderr)
+ #       print(f"  ACTION: {direction.upper()}", file=sys.stderr)
         # TODO: Add your motor control code here
         # if direction == 'forward':
         #     # drive forward
@@ -63,7 +63,7 @@ def control_car(target_data):
         'target_angle': angle,
         'target_distance': distance
     }
-    print(json.dumps(output))
+#    print(json.dumps(output))
     sys.stdout.flush()
 
 
@@ -72,7 +72,7 @@ def main():
     Read processed lidar data (JSON) from stdin and control car.
     Usage: ./ProcessAndClient.sh | python3 lidar_processor.py | python3 car_controller.py
     """
-    print("Car controller started. Waiting for target data...", file=sys.stderr)
+#    print("Car controller started. Waiting for target data...", file=sys.stderr)
 
     try:
         for line in sys.stdin:

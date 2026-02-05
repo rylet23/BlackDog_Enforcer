@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Baseline Map Creator
@@ -106,11 +105,14 @@ class BaselineMap:
         Args:
             scan_points: List of dicts with 'theta', 'distance', 'quality'
         """
+        valid_count = 0
         for point in scan_points:
             if point['quality'] < MIN_QUALITY:
                 continue
             if not (MIN_DISTANCE <= point['distance'] <= MAX_DISTANCE):
                 continue
+            
+            valid_count += 1
             
             # Convert polar to Cartesian
             theta_rad = math.radians(point['theta'])
@@ -136,6 +138,7 @@ class BaselineMap:
                 self.hits[end_x, end_y] += 1
         
         self.scan_count += 1
+        return valid_count
     
     def finalize_probabilities(self):
         """Calculate final occupancy probabilities"""
@@ -185,7 +188,7 @@ class BaselineMap:
         with open(filepath, 'wb') as f:
             pickle.dump(data, f)
         
-        print(f"Baseline map saved to: {filepath}", file=sys.stderr)
+        print(f"Saved: {filepath}", file=sys.stderr)
     
     def save_json(self, filepath):
         """Save baseline map to JSON file (for human readability)"""
@@ -201,8 +204,6 @@ class BaselineMap:
         
         with open(filepath, 'w') as f:
             json.dump(data, f, indent=2)
-        
-        print(f"Baseline map (JSON) saved to: {filepath}", file=sys.stderr)
     
     @staticmethod
     def load(filepath):
@@ -229,8 +230,8 @@ def main():
     parser = argparse.ArgumentParser(description='Create baseline LIDAR map')
     parser.add_argument('-o', '--output', default='baseline_map.pkl',
                         help='Output file path (default: baseline_map.pkl)')
-    parser.add_argument('-n', '--num-scans', type=int, default=100,
-                        help='Number of scans to collect (default: 100)')
+    parser.add_argument('-n', '--num-scans', type=int, default=50,
+                        help='Number of scans to collect (default: 50)')
     parser.add_argument('--json', action='store_true',
                         help='Also save as JSON file')
     parser.add_argument('--resolution', type=int, default=GRID_RESOLUTION,
@@ -244,20 +245,7 @@ def main():
     baseline = BaselineMap(args.map_size, args.resolution, LIDAR_X, LIDAR_Y)
     
     scan_data = []
-    scan_count = 0
     target_scans = args.num_scans
-    
-    # print("=" * 60, file=sys.stderr)
-    # print("BASELINE MAP CREATOR", file=sys.stderr)
-    # print("=" * 60, file=sys.stderr)
-    # print(f"Map size: {args.map_size}x{args.map_size} cells", file=sys.stderr)
-    # print(f"Resolution: {args.resolution}mm/cell", file=sys.stderr)
-    # print(f"Coverage: {args.map_size * args.resolution / 1000:.1f}m x {args.map_size * args.resolution / 1000:.1f}m", file=sys.stderr)
-    # print(f"LIDAR position: ({LIDAR_X}, {LIDAR_Y})", file=sys.stderr)
-    # print(f"Target scans: {target_scans}", file=sys.stderr)
-    # print("=" * 60, file=sys.stderr)
-    # print("", file=sys.stderr)
-    # print("Collecting baseline data...", file=sys.stderr)
     
     try:
         for line in sys.stdin:
@@ -267,17 +255,13 @@ def main():
                 # New scan marker
                 if point['is_new_scan'] and len(scan_data) > 0:
                     baseline.update_with_scan(scan_data)
-                    scan_count += 1
                     
-                    # Progress indicator
-                    if scan_count % 10 == 0:
-                        progress = (scan_count / target_scans) * 100
-                        print(f"Progress: {scan_count}/{target_scans} scans ({progress:.1f}%)",
-                              file=sys.stderr)
+                    # Progress indicator - only every 10 scans
+                    if baseline.scan_count % 10 == 0:
+                        print(f"Scans: {baseline.scan_count}/{target_scans}", file=sys.stderr)
                     
                     # Check if we've collected enough scans
-                    if scan_count >= target_scans:
-                        print("\nTarget scan count reached!", file=sys.stderr)
+                    if baseline.scan_count >= target_scans:
                         break
                     
                     scan_data = []
@@ -285,41 +269,24 @@ def main():
                 scan_data.append(point)
         
     except KeyboardInterrupt:
-        print("\n\nInterrupted by user", file=sys.stderr)
+        pass
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
     
-    # Finalize the map
-    #print("\nFinalizing baseline map...", file=sys.stderr)
-    baseline.finalize_probabilities()
-    
-    # Save the baseline map
-    #print("\nSaving baseline map...", file=sys.stderr)
-    baseline.save(args.output)
-    
-    if args.json:
-        json_path = args.output.replace('.pkl', '.json')
-        baseline.save_json(json_path)
-    
-    # Print summary
-    #print("\n" + "=" * 60, file=sys.stderr)
-    #print("BASELINE MAP CREATED", file=sys.stderr)
-    #print("=" * 60, file=sys.stderr)
-    metadata = baseline.get_metadata()
-    #print(f"Scans collected: {metadata['scan_count']}", file=sys.stderr)
-    #print(f"Observed cells: {metadata['observed_cells']}", file=sys.stderr)
-    #print(f"Free space: {metadata['free_cells']} cells", file=sys.stderr)
-    #print(f"Occupied: {metadata['occupied_cells']} cells", file=sys.stderr)
-    #print(f"Uncertain: {metadata['uncertain_cells']} cells", file=sys.stderr)
-    #print("=" * 60, file=sys.stderr)
-    
-    # Output hashmap size to stdout
-    hashmap = baseline.to_hashmap()
-    result = {
-        'status': 'baseline_complete',
-        'file': args.output,
-        'metadata': metadata,
-        'hashmap_size': len(hashmap)
-    }
-    #print(json.dumps(result))
+    # Only save if we have collected scans
+    if baseline.scan_count > 0:
+        baseline.finalize_probabilities()
+        baseline.save(args.output)
+        
+        if args.json:
+            json_path = args.output.replace('.pkl', '.json')
+            baseline.save_json(json_path)
+        
+        # Output final count and location
+        print(f"Complete: {baseline.scan_count} scans", file=sys.stderr)
+    else:
+        print("Error: No scans collected", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

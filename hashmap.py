@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 """
 Baseline Map Creator
@@ -15,32 +16,36 @@ from datetime import datetime
 import argparse
 
 # Configuration
-MIN_DISTANCE = 100  #in mm. Equal to 0.1m 
-MAX_DISTANCE = 3000  #in mm. Equal to 3m
+MIN_DISTANCE = 100  # mm
+MAX_DISTANCE = 3000  # mm
 MIN_QUALITY = 10
 
 # Map configuration
-GRID_RESOLUTION = 50  # mm per cell (smaller = more detailed, larger = less memory)
-MAP_SIZE = 200  # cells in each direction (200 * 50mm = 10m x 10m map)
+GRID_RESOLUTION = 50  # mm per cell
+MAP_SIZE = 200  # cells in each direction (10m x 10m)
 
-#TODO Need to change this so robot starts on outside of the Hashmap. 
-ROBOT_X = MAP_SIZE // 2  # Robot starts at center
-ROBOT_Y = MAP_SIZE // 2
+# LIDAR position - edge of map since robot starts outside
+LIDAR_X = 10  # Near left edge
+LIDAR_Y = MAP_SIZE // 2  # Centered vertically
 
 
-class OccupancyGrid:
-    """2D occupancy grid map"""
+class BaselineMap:
+    """2D occupancy grid for baseline/reference map"""
     
-    def __init__(self, size, resolution):
+    def __init__(self, size, resolution, lidar_x, lidar_y):
         """
-        Initialize the occupancy grid.
+        Initialize the baseline map.
         
         Args:
             size: Grid size (will be size x size)
             resolution: Resolution in mm per cell
+            lidar_x: LIDAR X position in grid coordinates
+            lidar_y: LIDAR Y position in grid coordinates
         """
         self.size = size
         self.resolution = resolution
+        self.lidar_x = lidar_x
+        self.lidar_y = lidar_y
         
         # Grid stores probability of occupancy (0-100)
         # -1 = unknown, 0 = free, 100 = occupied
@@ -50,20 +55,15 @@ class OccupancyGrid:
         self.hits = np.zeros((size, size), dtype=np.int32)
         self.misses = np.zeros((size, size), dtype=np.int32)
         
-        self.robot_x = ROBOT_X
-        self.robot_y = ROBOT_Y
+        # Metadata
+        self.creation_time = datetime.now().isoformat()
+        self.scan_count = 0
     
     def world_to_grid(self, x_mm, y_mm):
         """Convert world coordinates (mm) to grid coordinates"""
-        grid_x = int(self.robot_x + (x_mm / self.resolution))
-        grid_y = int(self.robot_y + (y_mm / self.resolution))
+        grid_x = int(self.lidar_x + (x_mm / self.resolution))
+        grid_y = int(self.lidar_y + (y_mm / self.resolution))
         return grid_x, grid_y
-    
-    def grid_to_world(self, grid_x, grid_y):
-        """Convert grid coordinates to world coordinates (mm)"""
-        x_mm = (grid_x - self.robot_x) * self.resolution
-        y_mm = (grid_y - self.robot_y) * self.resolution
-        return x_mm, y_mm
     
     def is_valid(self, grid_x, grid_y):
         """Check if grid coordinates are valid"""
@@ -71,7 +71,7 @@ class OccupancyGrid:
     
     def bresenham_line(self, x0, y0, x1, y1):
         """
-        Get all cells along a line using Bresenham's algorithm.
+        Bresenham's line algorithm for ray tracing.
         Returns list of (x, y) tuples.
         """
         cells = []
@@ -101,21 +101,18 @@ class OccupancyGrid:
     
     def update_with_scan(self, scan_points):
         """
-        Update the occupancy grid with a complete LIDAR scan.
+        Update the map with a complete LIDAR scan.
         
         Args:
             scan_points: List of dicts with 'theta', 'distance', 'quality'
         """
-        robot_grid_x = self.robot_x
-        robot_grid_y = self.robot_y
-        
         for point in scan_points:
             if point['quality'] < MIN_QUALITY:
                 continue
             if not (MIN_DISTANCE <= point['distance'] <= MAX_DISTANCE):
                 continue
             
-            # Convert polar to Cartesian (LIDAR reference frame)
+            # Convert polar to Cartesian
             theta_rad = math.radians(point['theta'])
             x_mm = point['distance'] * math.cos(theta_rad)
             y_mm = point['distance'] * math.sin(theta_rad)
@@ -126,103 +123,97 @@ class OccupancyGrid:
             if not self.is_valid(end_x, end_y):
                 continue
             
-            # Mark all cells along the ray as free
-            ray_cells = self.bresenham_line(robot_grid_x, robot_grid_y, end_x, end_y)
+            # Ray trace from LIDAR to obstacle
+            ray_cells = self.bresenham_line(self.lidar_x, self.lidar_y, end_x, end_y)
             
-            # Update all cells except the last one (the obstacle)
-            for i, (cell_x, cell_y) in enumerate(ray_cells[:-1]):
+            # Mark ray path as free space (all cells except last)
+            for cell_x, cell_y in ray_cells[:-1]:
                 if self.is_valid(cell_x, cell_y):
                     self.misses[cell_x, cell_y] += 1
             
-            # Mark the endpoint as occupied
+            # Mark endpoint as occupied
             if self.is_valid(end_x, end_y):
                 self.hits[end_x, end_y] += 1
+        
+        self.scan_count += 1
     
-    def update_probabilities(self):
-        """Update grid probabilities based on hits and misses"""
+    def finalize_probabilities(self):
+        """Calculate final occupancy probabilities"""
         for x in range(self.size):
             for y in range(self.size):
                 total = self.hits[x, y] + self.misses[x, y]
                 if total > 0:
-                    # Calculate occupancy probability
                     prob = (self.hits[x, y] / total) * 100
                     self.grid[x, y] = int(prob)
     
-    def get_grid_dict(self):
+    def to_hashmap(self):
         """
-        Return grid as a dictionary mapping (x, y) -> occupancy value.
-        Only returns cells that have been observed.
+        Convert to hashmap: {(x, y): occupancy_value}
+        Only includes observed cells.
         """
-        grid_dict = {}
+        hashmap = {}
         for x in range(self.size):
             for y in range(self.size):
                 if self.grid[x, y] != -1:
-                    grid_dict[(x, y)] = int(self.grid[x, y])
-        return grid_dict
+                    hashmap[(x, y)] = int(self.grid[x, y])
+        return hashmap
     
-    def get_ascii_map(self, width=80, height=40):
-        """
-        Generate ASCII representation of the map for visualization.
-        
-        Args:
-            width: Width in characters
-            height: Height in characters
-        """
-        # Calculate which part of the grid to display
-        center_x, center_y = self.robot_x, self.robot_y
-        
-        # Scale factor
-        scale_x = self.size / width
-        scale_y = self.size / height
-        
-        lines = []
-        for row in range(height):
-            line = []
-            grid_y = int(row * scale_y)
-            
-            for col in range(width):
-                grid_x = int(col * scale_x)
-                
-                # Check if this is robot position
-                if abs(grid_x - self.robot_x) < 2 and abs(grid_y - self.robot_y) < 2:
-                    line.append('R')
-                elif not self.is_valid(grid_x, grid_y):
-                    line.append('?')
-                else:
-                    value = self.grid[grid_x, grid_y]
-                    if value == -1:
-                        line.append(' ')  # Unknown
-                    elif value < 30:
-                        line.append('.')  # Free
-                    elif value < 70:
-                        line.append('o')  # Uncertain
-                    else:
-                        line.append('#')  # Occupied
-            
-            lines.append(''.join(line))
-        
-        return '\n'.join(lines)
-    
-    def export_json(self):
-        """Export grid as JSON for external use"""
+    def get_metadata(self):
+        """Get map metadata"""
         return {
+            'creation_time': self.creation_time,
             'size': self.size,
             'resolution_mm': self.resolution,
-            'robot_position': {'x': self.robot_x, 'y': self.robot_y},
-            'occupied_cells': [
-                {'x': x, 'y': y, 'probability': int(self.grid[x, y])}
-                for x in range(self.size)
-                for y in range(self.size)
-                if self.grid[x, y] >= 70  # Only export high-confidence occupied cells
-            ],
-            'free_cells_count': int(np.sum((self.grid >= 0) & (self.grid < 30))),
-            'occupied_cells_count': int(np.sum(self.grid >= 70)),
-            'unknown_cells_count': int(np.sum(self.grid == -1))
+            'lidar_position': {'x': self.lidar_x, 'y': self.lidar_y},
+            'scan_count': self.scan_count,
+            'observed_cells': int(np.sum(self.grid != -1)),
+            'free_cells': int(np.sum((self.grid >= 0) & (self.grid < 30))),
+            'occupied_cells': int(np.sum(self.grid >= 70)),
+            'uncertain_cells': int(np.sum((self.grid >= 30) & (self.grid < 70)))
         }
+    
+    def save(self, filepath):
+        """Save baseline map to file (pickle format)"""
+        data = {
+            'hashmap': self.to_hashmap(),
+            'metadata': self.get_metadata(),
+            'grid': self.grid,
+            'hits': self.hits,
+            'misses': self.misses
+        }
+        
+        with open(filepath, 'wb') as f:
+            pickle.dump(data, f)
+        
+        print(f"Baseline map saved to: {filepath}", file=sys.stderr)
+    
+    def save_json(self, filepath):
+        """Save baseline map to JSON file (for human readability)"""
+        hashmap = self.to_hashmap()
+        
+        # Convert tuple keys to strings for JSON
+        hashmap_serializable = {f"{x},{y}": v for (x, y), v in hashmap.items()}
+        
+        data = {
+            'hashmap': hashmap_serializable,
+            'metadata': self.get_metadata()
+        }
+        
+        with open(filepath, 'w') as f:
+            json.dump(data, f, indent=2)
+        
+        print(f"Baseline map (JSON) saved to: {filepath}", file=sys.stderr)
+    
+    @staticmethod
+    def load(filepath):
+        """Load baseline map from file"""
+        with open(filepath, 'rb') as f:
+            data = pickle.load(f)
+        return data
 
 
 def parse_lidar_line(line):
-    """Parse a line of LIDAR output into structured data"""
+    """Parse LIDAR data line"""
     match = re.search(r'theta:\s*([\d.]+)\s+Dist:\s*([\d.]+)\s+Q:\s*(\d+)', line)
     if match:
         return {
@@ -235,72 +226,100 @@ def parse_lidar_line(line):
 
 
 def main():
-    """
-    Read LIDAR data from stdin, build 2D occupancy grid map.
-    Usage: python3 client.py | python3 lidar_mapper.py
-    """
-    # Create occupancy grid
-    grid = OccupancyGrid(MAP_SIZE, GRID_RESOLUTION)
+    parser = argparse.ArgumentParser(description='Create baseline LIDAR map')
+    parser.add_argument('-o', '--output', default='baseline_map.pkl',
+                        help='Output file path (default: baseline_map.pkl)')
+    parser.add_argument('-n', '--num-scans', type=int, default=100,
+                        help='Number of scans to collect (default: 100)')
+    parser.add_argument('--json', action='store_true',
+                        help='Also save as JSON file')
+    parser.add_argument('--resolution', type=int, default=GRID_RESOLUTION,
+                        help=f'Grid resolution in mm (default: {GRID_RESOLUTION})')
+    parser.add_argument('--map-size', type=int, default=MAP_SIZE,
+                        help=f'Map size in cells (default: {MAP_SIZE})')
+    
+    args = parser.parse_args()
+    
+    # Create baseline map
+    baseline = BaselineMap(args.map_size, args.resolution, LIDAR_X, LIDAR_Y)
     
     scan_data = []
     scan_count = 0
+    target_scans = args.num_scans
     
-    print("LIDAR Mapper started. Building 2D occupancy grid...", file=sys.stderr)
-    print(f"Map size: {MAP_SIZE}x{MAP_SIZE} cells, Resolution: {GRID_RESOLUTION}mm/cell", file=sys.stderr)
-    print(f"Coverage area: {MAP_SIZE * GRID_RESOLUTION / 1000:.1f}m x {MAP_SIZE * GRID_RESOLUTION / 1000:.1f}m", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    print("BASELINE MAP CREATOR", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    print(f"Map size: {args.map_size}x{args.map_size} cells", file=sys.stderr)
+    print(f"Resolution: {args.resolution}mm/cell", file=sys.stderr)
+    print(f"Coverage: {args.map_size * args.resolution / 1000:.1f}m x {args.map_size * args.resolution / 1000:.1f}m", file=sys.stderr)
+    print(f"LIDAR position: ({LIDAR_X}, {LIDAR_Y})", file=sys.stderr)
+    print(f"Target scans: {target_scans}", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
     print("", file=sys.stderr)
+    print("Collecting baseline data...", file=sys.stderr)
     
     try:
         for line in sys.stdin:
             point = parse_lidar_line(line.strip())
             
             if point:
-                # Check if this is a new scan
+                # New scan marker
                 if point['is_new_scan'] and len(scan_data) > 0:
-                    # Update grid with complete scan
-                    grid.update_with_scan(scan_data)
-                    grid.update_probabilities()
-                    
+                    baseline.update_with_scan(scan_data)
                     scan_count += 1
                     
-                    # Output status every 10 scans
+                    # Progress indicator
                     if scan_count % 10 == 0:
-                        result = {
-                            'scan_count': scan_count,
-                            'points_in_scan': len(scan_data),
-                            'map_stats': grid.export_json()
-                        }
-                        print(json.dumps(result))
-                        sys.stdout.flush()
-                        
-                        # Print ASCII map to stderr for debugging
-                        if scan_count % 50 == 0:
-                            print(f"\n=== Map Update (Scan #{scan_count}) ===", file=sys.stderr)
-                            print(grid.get_ascii_map(60, 30), file=sys.stderr)
-                            print("", file=sys.stderr)
+                        progress = (scan_count / target_scans) * 100
+                        print(f"Progress: {scan_count}/{target_scans} scans ({progress:.1f}%)", 
+                              file=sys.stderr)
                     
-                    # Start new scan
+                    # Check if we've collected enough scans
+                    if scan_count >= target_scans:
+                        print("\nTarget scan count reached!", file=sys.stderr)
+                        break
+                    
                     scan_data = []
                 
                 scan_data.append(point)
         
     except KeyboardInterrupt:
-        print("\nStopping mapper...", file=sys.stderr)
-        
-        # Final map export
-        print("\n=== Final Map ===", file=sys.stderr)
-        print(grid.get_ascii_map(80, 40), file=sys.stderr)
-        
-        final_result = {
-            'status': 'final',
-            'total_scans': scan_count,
-            'map': grid.export_json(),
-            'grid_dict': grid.get_grid_dict()
-        }
-        
-        print("\nFinal map data:", file=sys.stderr)
-        print(json.dumps(final_result, indent=2))
-        sys.stdout.flush()
+        print("\n\nInterrupted by user", file=sys.stderr)
+    
+    # Finalize the map
+    print("\nFinalizing baseline map...", file=sys.stderr)
+    baseline.finalize_probabilities()
+    
+    # Save the baseline map
+    print("\nSaving baseline map...", file=sys.stderr)
+    baseline.save(args.output)
+    
+    if args.json:
+        json_path = args.output.replace('.pkl', '.json')
+        baseline.save_json(json_path)
+    
+    # Print summary
+    print("\n" + "=" * 60, file=sys.stderr)
+    print("BASELINE MAP CREATED", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    metadata = baseline.get_metadata()
+    print(f"Scans collected: {metadata['scan_count']}", file=sys.stderr)
+    print(f"Observed cells: {metadata['observed_cells']}", file=sys.stderr)
+    print(f"Free space: {metadata['free_cells']} cells", file=sys.stderr)
+    print(f"Occupied: {metadata['occupied_cells']} cells", file=sys.stderr)
+    print(f"Uncertain: {metadata['uncertain_cells']} cells", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    
+    # Output hashmap size to stdout
+    hashmap = baseline.to_hashmap()
+    result = {
+        'status': 'baseline_complete',
+        'file': args.output,
+        'metadata': metadata,
+        'hashmap_size': len(hashmap)
+    }
+    print(json.dumps(result))
 
 
 if __name__ == "__main__":

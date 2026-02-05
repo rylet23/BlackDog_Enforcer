@@ -258,8 +258,8 @@ def main():
                     
                     # Progress indicator - only every 10 scans
                     if baseline.scan_count % 10 == 0:
-                        print(f"Scans: {baseline.scan_count}/{target_scans}", file=sys.stderr)
-                    
+                        # print(f"Scans: {baseline.scan_count}/{target_scans}", file=sys.stderr)
+                        print("hello")
                     # Check if we've collected enough scans
                     if baseline.scan_count >= target_scans:
                         break
@@ -283,7 +283,7 @@ def main():
             baseline.save_json(json_path)
         
         # Output final count and location
-        print(f"Complete: {baseline.scan_count} scans", file=sys.stderr)
+        #print(f"Complete: {baseline.scan_count} scans", file=sys.stderr)
     else:
         print("Error: No scans collected", file=sys.stderr)
         sys.exit(1)

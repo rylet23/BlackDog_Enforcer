@@ -247,17 +247,17 @@ def main():
     scan_count = 0
     target_scans = args.num_scans
     
-    print("=" * 60, file=sys.stderr)
-    print("BASELINE MAP CREATOR", file=sys.stderr)
-    print("=" * 60, file=sys.stderr)
-    print(f"Map size: {args.map_size}x{args.map_size} cells", file=sys.stderr)
-    print(f"Resolution: {args.resolution}mm/cell", file=sys.stderr)
-    print(f"Coverage: {args.map_size * args.resolution / 1000:.1f}m x {args.map_size * args.resolution / 1000:.1f}m", file=sys.stderr)
-    print(f"LIDAR position: ({LIDAR_X}, {LIDAR_Y})", file=sys.stderr)
-    print(f"Target scans: {target_scans}", file=sys.stderr)
-    print("=" * 60, file=sys.stderr)
-    print("", file=sys.stderr)
-    print("Collecting baseline data...", file=sys.stderr)
+    # print("=" * 60, file=sys.stderr)
+    # print("BASELINE MAP CREATOR", file=sys.stderr)
+    # print("=" * 60, file=sys.stderr)
+    # print(f"Map size: {args.map_size}x{args.map_size} cells", file=sys.stderr)
+    # print(f"Resolution: {args.resolution}mm/cell", file=sys.stderr)
+    # print(f"Coverage: {args.map_size * args.resolution / 1000:.1f}m x {args.map_size * args.resolution / 1000:.1f}m", file=sys.stderr)
+    # print(f"LIDAR position: ({LIDAR_X}, {LIDAR_Y})", file=sys.stderr)
+    # print(f"Target scans: {target_scans}", file=sys.stderr)
+    # print("=" * 60, file=sys.stderr)
+    # print("", file=sys.stderr)
+    # print("Collecting baseline data...", file=sys.stderr)
     
     try:
         for line in sys.stdin:
@@ -272,7 +272,7 @@ def main():
                     # Progress indicator
                     if scan_count % 10 == 0:
                         progress = (scan_count / target_scans) * 100
-                        print(f"Progress: {scan_count}/{target_scans} scans ({progress:.1f}%)", 
+                        print(f"Progress: {scan_count}/{target_scans} scans ({progress:.1f}%)",
                               file=sys.stderr)
                     
                     # Check if we've collected enough scans
@@ -288,11 +288,11 @@ def main():
         print("\n\nInterrupted by user", file=sys.stderr)
     
     # Finalize the map
-    print("\nFinalizing baseline map...", file=sys.stderr)
+    #print("\nFinalizing baseline map...", file=sys.stderr)
     baseline.finalize_probabilities()
     
     # Save the baseline map
-    print("\nSaving baseline map...", file=sys.stderr)
+    #print("\nSaving baseline map...", file=sys.stderr)
     baseline.save(args.output)
     
     if args.json:
@@ -300,16 +300,16 @@ def main():
         baseline.save_json(json_path)
     
     # Print summary
-    print("\n" + "=" * 60, file=sys.stderr)
-    print("BASELINE MAP CREATED", file=sys.stderr)
-    print("=" * 60, file=sys.stderr)
+    #print("\n" + "=" * 60, file=sys.stderr)
+    #print("BASELINE MAP CREATED", file=sys.stderr)
+    #print("=" * 60, file=sys.stderr)
     metadata = baseline.get_metadata()
-    print(f"Scans collected: {metadata['scan_count']}", file=sys.stderr)
-    print(f"Observed cells: {metadata['observed_cells']}", file=sys.stderr)
-    print(f"Free space: {metadata['free_cells']} cells", file=sys.stderr)
-    print(f"Occupied: {metadata['occupied_cells']} cells", file=sys.stderr)
-    print(f"Uncertain: {metadata['uncertain_cells']} cells", file=sys.stderr)
-    print("=" * 60, file=sys.stderr)
+    #print(f"Scans collected: {metadata['scan_count']}", file=sys.stderr)
+    #print(f"Observed cells: {metadata['observed_cells']}", file=sys.stderr)
+    #print(f"Free space: {metadata['free_cells']} cells", file=sys.stderr)
+    #print(f"Occupied: {metadata['occupied_cells']} cells", file=sys.stderr)
+    #print(f"Uncertain: {metadata['uncertain_cells']} cells", file=sys.stderr)
+    #print("=" * 60, file=sys.stderr)
     
     # Output hashmap size to stdout
     hashmap = baseline.to_hashmap()

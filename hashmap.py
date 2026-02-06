@@ -298,8 +298,8 @@ def main():
             'grid_dict': grid.get_grid_dict()
         }
         
-        print("\nFinal map data:", file=sys.stderr)
-        print(json.dumps(final_result, indent=2))
+ #       print("\nFinal map data:", file=sys.stderr)
+#        print(json.dumps(final_result, indent=2))
         sys.stdout.flush()
 
 

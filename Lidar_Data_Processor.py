@@ -1,7 +1,7 @@
 import sys
 import re
 import json
-
+import math
 # Configuration
 MIN_DISTANCE = 100  # mm
 MAX_DISTANCE = 3000  # mm
@@ -50,11 +50,31 @@ def process_scan(scan_data):
         'total_points': len(scan_data)
     }
 def pull_into_map(total_json):
-    print("Pulled")
-    
-    #print("angle", angle)
-    #print("distance", distance)
-
+    hash_dict = {}
+    if isinstance(total_json, str):
+        data = json.loads(total_json)
+    else:
+        data = total_json
+    angle = data.get("angle")
+    if angle is None:
+        print("null value")
+        return
+    distance = data.get("distance")
+    #print(angle, distance)
+    angle_rad = math.radians(angle)
+    x = distance * math.cos(angle_rad)
+    y = distance * math.sin(angle_rad)
+    if x > 0 and y > 0:
+        print("Quadrant 1")
+    elif x < 0 and y > 0:
+        print("Quadrant 2")
+    elif x < 0 and y < 0:
+        print("Quadrant 3")
+    elif x > 0 and y < 0:
+        print("Quadrant 4")
+    print(x,y)
+    #print("angle:", data.get("angle"))
+    #print("distance:", data.get("distance"))    
 def main():
     """
     Read lidar data from stdin, process complete scans, output JSON.

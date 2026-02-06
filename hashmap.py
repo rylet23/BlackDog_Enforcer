@@ -202,8 +202,8 @@ class BaselineMap:
             'metadata': self.get_metadata()
         }
         
-        with open(filepath, 'w') as f:
-            json.dump(data, f, indent=2)
+        #with open(filepath, 'w') as f:
+            #json.dump(data, f, indent=2)
     
     @staticmethod
     def load(filepath):

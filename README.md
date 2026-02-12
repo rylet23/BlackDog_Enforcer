@@ -201,12 +201,12 @@ FORWARD_ANGLE_RANGE = 30      # Forward cone (degrees)
 - [x] Motor control integration
 - [x] CNN-based animal classification
 
-### In Progress 🚧
+### In Progress 
 - [ ] Autonomous navigation algorithm
 - [ ] Audio deterrent system
 - [ ] Field testing procedures
 
-### Planned 📋
+### Planned 
 - [ ] Multi-target tracking
 - [ ] Event logging system
 - [ ] Battery monitoring
@@ -299,5 +299,5 @@ For questions about this project, please contact the team through GitHub issues 
 
 ---
 
-**Project Status:** 🚧 Active Development (Spring 2026)  
+**Project Status:** Active Development (Spring 2026)  
 **Last Updated:** February 2026

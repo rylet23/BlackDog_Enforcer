@@ -8,6 +8,7 @@ MIN_QUALITY = 10
 CHANGE_THRESHOLD = 150 
 BASELINE_FILE = 'room_baseline.json'
 
+
 def trigger_cnn_model(x, y, distance, obs_type):
     """
     This is the specific function you requested to be called 

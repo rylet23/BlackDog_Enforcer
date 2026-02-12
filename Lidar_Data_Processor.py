@@ -120,6 +120,7 @@ def run_lidar_monitor():
                 current_scan = []
             current_scan.append(data)
 
+
 if __name__ == "__main__":
     try:
         run_lidar_monitor()

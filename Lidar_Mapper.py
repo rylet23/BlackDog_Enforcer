@@ -11,6 +11,7 @@ GRID_SIZE = 50
 
 baseline_grid = {}
 
+
 def parse_lidar_line(line):
     match = re.search(r'theta:\s*([\d.]+)\s+Dist:\s*([\d.]+)\s+Q:\s*(\d+)', line)
     if match:

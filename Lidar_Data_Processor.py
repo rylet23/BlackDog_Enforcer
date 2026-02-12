@@ -4,7 +4,7 @@ import json
 import math
 # Configuration
 MIN_DISTANCE = 100  # mm
-MAX_DISTANCE = 3000  # mm
+MAX_DISTANCE = 20000  # mm
 MIN_QUALITY = 10
 
 

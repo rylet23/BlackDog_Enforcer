@@ -51,7 +51,7 @@ def process_scan(scan_data):
         if angle == 0:
             print("null value")
         
-        print(angle, distance)
+        #print(angle, distance)
         
         angle_rad = math.radians(angle)
         x = distance * math.cos(angle_rad)
@@ -70,18 +70,18 @@ def process_scan(scan_data):
 
         grid_key = (int(x // 50) * 50, int(y // 50) * 50)
         current_grid[grid_key] = distance
-
+#        print(current_grid)
     if not is_calibrated:
         baseline_grid = current_grid
         is_calibrated = True
-        print("--- BASELINE CREATED ---")
+        #print("--- BASELINE CREATED ---")
         return
 
-    for coord, dist in current_grid.items():
-        if coord not in baseline_grid:
-            print(f"DIFFERENCE DETECTED: New object at {coord}")
-        elif abs(dist - baseline_grid[coord]) > 150:
-            print(f"DIFFERENCE DETECTED: Movement at {coord}")
+  #  for coord, dist in current_grid.items():
+#        if coord not in baseline_grid:
+            #print(f"DIFFERENCE DETECTED: New object at {coord}")
+ #       elif abs(dist - baseline_grid[coord]) > 150:
+            #print(f"DIFFERENCE DETECTED: Movement at {coord}")
 
 def run_lidar_monitor():
     current_scan = []
@@ -94,4 +94,5 @@ def run_lidar_monitor():
             current_scan.append(data)
 
 if __name__ == "__main__":
+    print(current_grid)
     run_lidar_monitor()

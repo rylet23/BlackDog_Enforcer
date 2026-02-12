@@ -2,7 +2,7 @@ import socket
 import sys
 
 # Configuration
-SERVER_IP = '10.33.239.139'
+SERVER_IP = '10.33.241.196'
 SERVER_PORT = 5555
 BUFFER_SIZE = 4096
 

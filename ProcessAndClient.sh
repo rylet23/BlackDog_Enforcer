@@ -7,7 +7,7 @@ SCRIPTS_PATH="$HOME/BlackDog_Enforcer/BlackDog_Enforcer"
 CLIENT_SCRIPT="$SCRIPTS_PATH/client.py"
 PROCESSOR_SCRIPT="$SCRIPTS_PATH/Lidar_Data_Processor.py"
 CONTROLLER_SCRIPT="$SCRIPTS_PATH/Car_Controller.py"
-SERVER_IP="10.33.239.139"  # Pi 5's IP address
+SERVER_IP="10.33.241.196"  # Pi 5's IP address
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -26,7 +26,7 @@ for script in "$CLIENT_SCRIPT" "$PROCESSOR_SCRIPT" "$CONTROLLER_SCRIPT"; do
 done
 
 # Check server IP is set
-if [ "$SERVER_IP" == "10.33.239.139" ]; then
+if [ "$SERVER_IP" == "10.33.241.196" ]; then
     echo -e "${YELLOW}Warning: Using default server IP: $SERVER_IP${NC}"
     echo ""
 fi

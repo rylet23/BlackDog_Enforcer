@@ -2,16 +2,19 @@ import sys
 import re
 import json
 import math
-# Configuration
+
+# --- Configuration ---
 MIN_DISTANCE = 100  # mm
 MAX_DISTANCE = 3000  # mm
 MIN_QUALITY = 10
+GRID_SIZE = 50 # mm (Size of the grid squares)
+CHANGE_THRESHOLD = 150 # mm (How much depth change constitutes an obstruction)
 
+baseline_grid = {}
+is_calibrated = False
 
 def parse_lidar_line(line):
     """Parse a line of lidar output into structured data"""
-    # Match pattern: "theta: 310.92 Dist: 00159.00 Q: 47"
-    # Distance is in mm, theta is in degrees
     match = re.search(r'theta:\s*([\d.]+)\s+Dist:\s*([\d.]+)\s+Q:\s*(\d+)', line)
     if match:
         return {
@@ -22,90 +25,104 @@ def parse_lidar_line(line):
         }
     return None
 
-
 def process_scan(scan_data):
     """
-    Process a complete scan and find the target.
-    Returns JSON with target info.
+    Process a complete scan, compare to baseline, and map obstructions.
     """
-    # Filter valid points
+    global baseline_grid, is_calibrated
+
+    # 1. Filter valid points
     valid_points = [
         p for p in scan_data
         if p['quality'] >= MIN_QUALITY
-           and MIN_DISTANCE <= p['distance'] <= MAX_DISTANCE
+        and MIN_DISTANCE <= p['distance'] <= MAX_DISTANCE
     ]
 
     if not valid_points:
-        return {'status': 'no_target', 'valid_points': 0}
-
-    # Find closest point
-    closest = min(valid_points, key=lambda p: p['distance'])
-
-    return {
-        'status': 'target_found',
-        'angle': closest['theta'],
-        'distance': closest['distance'],
-        'quality': closest['quality'],
-        'valid_points': len(valid_points),
-        'total_points': len(scan_data)
-    }
-def pull_into_map(total_json):
-    hash_dict = {}
-    if isinstance(total_json, str):
-        data = json.loads(total_json)
-    else:
-        data = total_json
-    angle = data.get("angle")
-    if angle is None:
-        print("null value")
         return
-    distance = data.get("distance")
-    #print(angle, distance)
-    angle_rad = math.radians(angle)
-    x = distance * math.cos(angle_rad)
-    y = distance * math.sin(angle_rad)
-    if x > 0 and y > 0:
-        print("Quadrant 1")
-    elif x < 0 and y > 0:
-        print("Quadrant 2")
-    elif x < 0 and y < 0:
-        print("Quadrant 3")
-    elif x > 0 and y < 0:
-        print("Quadrant 4")
-    print(x,y)
-    #print("angle:", data.get("angle"))
-    #print("distance:", data.get("distance"))    
-def main():
-    """
-    Read lidar data from stdin, process complete scans, output JSON.
-    Usage: python3 lidar_client.py | python3 lidar_processor.py
-    """
-    scan_data = []
 
-#    print("Lidar processor started. Waiting for data...", file=sys.stderr)
+    # 2. Map current scan to grid
+    current_grid = {}
+    
+    for p in valid_points:
+        angle = p['theta']
+        distance = p['distance']
 
-    try:
-        for line in sys.stdin:
-            point = parse_lidar_line(line.strip())
+        # Convert Polar (Angle/Dist) to Cartesian (X/Y)
+        angle_rad = math.radians(angle)
+        x = distance * math.cos(angle_rad)
+        y = distance * math.sin(angle_rad)
 
-            if point:
-                # Check if this is a new scan
-                if point['is_new_scan'] and len(scan_data) > 0:
-                    # Process the complete scan
-                    result = process_scan(scan_data)
-                    #print(json.dumps(result))
-                    total_json = json.dumps(result)
-                    pull_into_map(total_json)
-                    sys.stdout.flush()
+        # Snap coordinates to grid (e.g., round to nearest 50mm)
+        # We use a tuple (x, y) as the dictionary key
+        grid_key = (int(x // GRID_SIZE) * GRID_SIZE, int(y // GRID_SIZE) * GRID_SIZE)
+        
+        # Store distance. Note: This overwrites if multiple points hit the same cell.
+        # Ideally, you might want to store the 'min' distance for safety.
+        if grid_key in current_grid:
+            current_grid[grid_key] = min(current_grid[grid_key], distance)
+        else:
+            current_grid[grid_key] = distance
 
-                    # Start new scan
-                    scan_data = []
+    # 3. Calibration: If first run, set baseline and exit
+    if not is_calibrated:
+        baseline_grid = current_grid
+        is_calibrated = True
+        print(json.dumps({"status": "CALIBRATED", "baseline_points": len(baseline_grid)}))
+        return
 
-                scan_data.append(point)
+    # 4. Detect Obstructions
+    # This hash map stores only the problem areas
+    obstruction_map = {}
 
-    except KeyboardInterrupt:
-        print("\nProcessor stopped", file=sys.stderr)
+    for coord, dist in current_grid.items():
+        # Case A: Object detected where baseline was empty
+        if coord not in baseline_grid:
+            obstruction_map[str(coord)] = {
+                "x": coord[0], 
+                "y": coord[1], 
+                "dist": dist, 
+                "type": "NEW_OBJECT"
+            }
+        
+        # Case B: Object detected, but distance is significantly different (closer or further)
+        elif abs(dist - baseline_grid[coord]) > CHANGE_THRESHOLD:
+            obstruction_map[str(coord)] = {
+                "x": coord[0], 
+                "y": coord[1], 
+                "dist": dist, 
+                "delta": round(dist - baseline_grid[coord], 2),
+                "type": "MOVED_OBJECT"
+            }
+
+    # 5. Output the Obstruction Map
+    # We print valid JSON so another program can read this output easily
+    if obstruction_map:
+        output = {
+            "status": "OBSTRUCTION_DETECTED",
+            "count": len(obstruction_map),
+            "obstructions": obstruction_map
+        }
+        print(json.dumps(output))
+    else:
+        # Optional: Heartbeat to show system is running but clear
+        # print(json.dumps({"status": "CLEAR"}))
+        pass
+
+def run_lidar_monitor():
+    current_scan = []
+    # Read from standard input (pipe)
+    for line in sys.stdin:
+        data = parse_lidar_line(line)
+        if data:
+            if data['is_new_scan'] and current_scan:
+                process_scan(current_scan)
+                current_scan = []
+            current_scan.append(data)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        run_lidar_monitor()
+    except KeyboardInterrupt:
+        sys.exit(0)

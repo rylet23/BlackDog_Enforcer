@@ -1,6 +1,6 @@
 #!/bin/bash
 # Configuration
-SCRIPTS_PATH="$HOME/BlackDog_Enforcer/BlackDog_Enforcer"
+SCRIPTS_PATH="$HOME/BlackDog_Enforcer"
 MAPPER_SCRIPT="$SCRIPTS_PATH/lidar_mapper.py"
 MONITOR_SCRIPT="$SCRIPTS_PATH/lidar_monitor.py"
 CLIENT_SCRIPT="$SCRIPTS_PATH/client.py"

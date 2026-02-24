@@ -5,7 +5,7 @@ import math
 
 # --- Configuration ---
 MIN_DISTANCE = 100  # mm
-MAX_DISTANCE = 3000  # mm
+MAX_DISTANCE = 20000  # mm
 MIN_QUALITY = 10
 GRID_SIZE = 50 # mm (Size of the grid squares)
 CHANGE_THRESHOLD = 150 # mm (How much depth change constitutes an obstruction)

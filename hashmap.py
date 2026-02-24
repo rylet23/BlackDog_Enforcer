@@ -1,8 +1,8 @@
-
 #!/usr/bin/env python3
 """
 Baseline Map Creator
 Creates a reference occupancy grid map from LIDAR data.
+This baseline will be saved and used later to detect changes/obstructions.
 """
 
 import sys
@@ -13,7 +13,6 @@ import numpy as np
 import math
 from datetime import datetime
 import argparse
-import signal
 
 # Configuration
 MIN_DISTANCE = 100  # mm
@@ -28,26 +27,34 @@ MAP_SIZE = 200  # cells in each direction (10m x 10m)
 LIDAR_X = 10  # Near left edge
 LIDAR_Y = MAP_SIZE // 2  # Centered vertically
 
-# Global for signal handling
-baseline_map = None
-output_file = 'baseline_map.pkl'
-save_json = False
-
 
 class BaselineMap:
     """2D occupancy grid for baseline/reference map"""
     
     def __init__(self, size, resolution, lidar_x, lidar_y):
-        ""
+        """
+        Initialize the baseline map.
+        
+        Args:
+            size: Grid size (will be size x size)
+            resolution: Resolution in mm per cell
+            lidar_x: LIDAR X position in grid coordinates
+            lidar_y: LIDAR Y position in grid coordinates
+        """
         self.size = size
         self.resolution = resolution
         self.lidar_x = lidar_x
         self.lidar_y = lidar_y
         
+        # Grid stores probability of occupancy (0-100)
+        # -1 = unknown, 0 = free, 100 = occupied
         self.grid = np.full((size, size), -1, dtype=np.int8)
+        
+        # Hit and miss counts for probabilistic updates
         self.hits = np.zeros((size, size), dtype=np.int32)
         self.misses = np.zeros((size, size), dtype=np.int32)
         
+        # Metadata
         self.creation_time = datetime.now().isoformat()
         self.scan_count = 0
     
@@ -62,7 +69,10 @@ class BaselineMap:
         return 0 <= grid_x < self.size and 0 <= grid_y < self.size
     
     def bresenham_line(self, x0, y0, x1, y1):
-        """Bresenham's line algorithm"""
+        """
+        Bresenham's line algorithm for ray tracing.
+        Returns list of (x, y) tuples.
+        """
         cells = []
         dx = abs(x1 - x0)
         dy = abs(y1 - y0)
@@ -74,6 +84,7 @@ class BaselineMap:
         
         while True:
             cells.append((x, y))
+            
             if x == x1 and y == y1:
                 break
             
@@ -88,16 +99,20 @@ class BaselineMap:
         return cells
     
     def update_with_scan(self, scan_points):
-        """Update the map with a complete LIDAR scan"""
-        valid_points = 0
+        """
+        Update the map with a complete LIDAR scan.
         
+        Args:
+            scan_points: List of dicts with 'theta', 'distance', 'quality'
+        """
+        valid_count = 0
         for point in scan_points:
             if point['quality'] < MIN_QUALITY:
                 continue
             if not (MIN_DISTANCE <= point['distance'] <= MAX_DISTANCE):
                 continue
             
-            valid_points += 1
+            valid_count += 1
             
             # Convert polar to Cartesian
             theta_rad = math.radians(point['theta'])
@@ -113,7 +128,7 @@ class BaselineMap:
             # Ray trace from LIDAR to obstacle
             ray_cells = self.bresenham_line(self.lidar_x, self.lidar_y, end_x, end_y)
             
-            # Mark ray path as free space
+            # Mark ray path as free space (all cells except last)
             for cell_x, cell_y in ray_cells[:-1]:
                 if self.is_valid(cell_x, cell_y):
                     self.misses[cell_x, cell_y] += 1
@@ -123,7 +138,7 @@ class BaselineMap:
                 self.hits[end_x, end_y] += 1
         
         self.scan_count += 1
-        return valid_points
+        return valid_count
     
     def finalize_probabilities(self):
         """Calculate final occupancy probabilities"""
@@ -135,7 +150,10 @@ class BaselineMap:
                     self.grid[x, y] = int(prob)
     
     def to_hashmap(self):
-        """Convert to hashmap: {(x, y): occupancy_value}"""
+        """
+        Convert to hashmap: {(x, y): occupancy_value}
+        Only includes observed cells.
+        """
         hashmap = {}
         for x in range(self.size):
             for y in range(self.size):
@@ -158,7 +176,7 @@ class BaselineMap:
         }
     
     def save(self, filepath):
-        """Save baseline map to file"""
+        """Save baseline map to file (pickle format)"""
         data = {
             'hashmap': self.to_hashmap(),
             'metadata': self.get_metadata(),
@@ -170,12 +188,13 @@ class BaselineMap:
         with open(filepath, 'wb') as f:
             pickle.dump(data, f)
         
-        print(f"\n✓ Baseline map saved to: {filepath}", file=sys.stderr)
-        return filepath
+        print(f"Saved: {filepath}", file=sys.stderr)
     
     def save_json(self, filepath):
-        """Save baseline map to JSON"""
+        """Save baseline map to JSON file (for human readability)"""
         hashmap = self.to_hashmap()
+        
+        # Convert tuple keys to strings for JSON
         hashmap_serializable = {f"{x},{y}": v for (x, y), v in hashmap.items()}
         
         data = {
@@ -183,10 +202,15 @@ class BaselineMap:
             'metadata': self.get_metadata()
         }
         
-        with open(filepath, 'w') as f:
-            json.dump(data, f, indent=2)
-        
-        print(f"✓ JSON map saved to: {filepath}", file=sys.stderr)
+        #with open(filepath, 'w') as f:
+            #json.dump(data, f, indent=2)
+    
+    @staticmethod
+    def load(filepath):
+        """Load baseline map from file"""
+        with open(filepath, 'rb') as f:
+            data = pickle.load(f)
+        return data
 
 
 def parse_lidar_line(line):
@@ -202,46 +226,12 @@ def parse_lidar_line(line):
     return None
 
 
-def save_and_exit(signum=None, frame=None):
-    """Signal handler to save map on Ctrl+C"""
-    global baseline_map, output_file, save_json
-    
-    if baseline_map and baseline_map.scan_count > 0:
-        print("\n\n" + "=" * 60, file=sys.stderr)
-        print("Saving baseline map...", file=sys.stderr)
-        print("=" * 60, file=sys.stderr)
-        
-        baseline_map.finalize_probabilities()
-        baseline_map.save(output_file)
-        
-        if save_json:
-            json_path = output_file.replace('.pkl', '.json')
-            baseline_map.save_json(json_path)
-        
-        metadata = baseline_map.get_metadata()
-        print("\n" + "=" * 60, file=sys.stderr)
-        print("BASELINE MAP SUMMARY", file=sys.stderr)
-        print("=" * 60, file=sys.stderr)
-        print(f"Scans collected: {metadata['scan_count']}", file=sys.stderr)
-        print(f"Observed cells: {metadata['observed_cells']}", file=sys.stderr)
-        print(f"Free space: {metadata['free_cells']} cells", file=sys.stderr)
-        print(f"Occupied: {metadata['occupied_cells']} cells", file=sys.stderr)
-        print(f"Uncertain: {metadata['uncertain_cells']} cells", file=sys.stderr)
-        print("=" * 60, file=sys.stderr)
-    else:
-        print("\nNo data collected yet!", file=sys.stderr)
-    
-    sys.exit(0)
-
-
 def main():
-    global baseline_map, output_file, save_json
-    
     parser = argparse.ArgumentParser(description='Create baseline LIDAR map')
     parser.add_argument('-o', '--output', default='baseline_map.pkl',
                         help='Output file path (default: baseline_map.pkl)')
-    parser.add_argument('-n', '--num-scans', type=int, default=0,
-                        help='Number of scans to collect (0 = run until Ctrl+C)')
+    parser.add_argument('-n', '--num-scans', type=int, default=50,
+                        help='Number of scans to collect (default: 50)')
     parser.add_argument('--json', action='store_true',
                         help='Also save as JSON file')
     parser.add_argument('--resolution', type=int, default=GRID_RESOLUTION,
@@ -251,87 +241,51 @@ def main():
     
     args = parser.parse_args()
     
-    output_file = args.output
-    save_json = args.json
-    
-    # Set up signal handler for graceful exit
-    signal.signal(signal.SIGINT, save_and_exit)
-    signal.signal(signal.SIGTERM, save_and_exit)
-    
     # Create baseline map
-    baseline_map = BaselineMap(args.map_size, args.resolution, LIDAR_X, LIDAR_Y)
+    baseline = BaselineMap(args.map_size, args.resolution, LIDAR_X, LIDAR_Y)
     
     scan_data = []
     target_scans = args.num_scans
     
-    print("=" * 60, file=sys.stderr)
-    print("BASELINE MAP CREATOR", file=sys.stderr)
-    print("=" * 60, file=sys.stderr)
-    print(f"Map size: {args.map_size}x{args.map_size} cells", file=sys.stderr)
-    print(f"Resolution: {args.resolution}mm/cell", file=sys.stderr)
-    print(f"Coverage: {args.map_size * args.resolution / 1000:.1f}m x {args.map_size * args.resolution / 1000:.1f}m", file=sys.stderr)
-    print(f"LIDAR position: ({LIDAR_X}, {LIDAR_Y})", file=sys.stderr)
-    
-    if target_scans > 0:
-        print(f"Target scans: {target_scans}", file=sys.stderr)
-    else:
-        print("Mode: Continuous (press Ctrl+C to save and exit)", file=sys.stderr)
-    
-    print("=" * 60, file=sys.stderr)
-    print("\nWaiting for LIDAR data...", file=sys.stderr)
-    
-    lines_received = 0
-    
     try:
         for line in sys.stdin:
-            lines_received += 1
-            
-            # Debug: show we're receiving data
-            if lines_received == 1:
-                print("✓ Receiving LIDAR data", file=sys.stderr)
-            
             point = parse_lidar_line(line.strip())
             
             if point:
                 # New scan marker
                 if point['is_new_scan'] and len(scan_data) > 0:
-                    valid_points = baseline_map.update_with_scan(scan_data)
+                    baseline.update_with_scan(scan_data)
                     
-                    # Progress indicator
-                    if baseline_map.scan_count == 1:
-                        print(f"✓ First scan processed ({len(scan_data)} points, {valid_points} valid)", 
-                              file=sys.stderr)
-                    elif baseline_map.scan_count % 10 == 0:
-                        if target_scans > 0:
-                            progress = (baseline_map.scan_count / target_scans) * 100
-                            print(f"Scan {baseline_map.scan_count}/{target_scans} ({progress:.1f}%) - {valid_points} valid points", 
-                                  file=sys.stderr)
-                        else:
-                            print(f"Scan {baseline_map.scan_count} - {valid_points} valid points", 
-                                  file=sys.stderr)
-                    
+                    # Progress indicator - only every 10 scans
+                    if baseline.scan_count % 10 == 0:
+                        # print(f"Scans: {baseline.scan_count}/{target_scans}", file=sys.stderr)
+                        print("hello")
                     # Check if we've collected enough scans
-                    if target_scans > 0 and baseline_map.scan_count >= target_scans:
-                        print(f"\n✓ Target scan count reached ({target_scans} scans)", file=sys.stderr)
-                        save_and_exit()
+                    if baseline.scan_count >= target_scans:
+                        break
                     
                     scan_data = []
                 
                 scan_data.append(point)
         
     except KeyboardInterrupt:
-        save_and_exit()
+        pass
     except Exception as e:
-        print(f"\nError: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc(file=sys.stderr)
-        save_and_exit()
+        print(f"Error: {e}", file=sys.stderr)
     
-    # If stdin ends naturally
-    if baseline_map.scan_count > 0:
-        save_and_exit()
+    # Only save if we have collected scans
+    if baseline.scan_count > 0:
+        baseline.finalize_probabilities()
+        baseline.save(args.output)
+        
+        if args.json:
+            json_path = args.output.replace('.pkl', '.json')
+            baseline.save_json(json_path)
+        
+        # Output final count and location
+        #print(f"Complete: {baseline.scan_count} scans", file=sys.stderr)
     else:
-        print("\nNo scans were collected!", file=sys.stderr)
+        print("Error: No scans collected", file=sys.stderr)
         sys.exit(1)
 
 

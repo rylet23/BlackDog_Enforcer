@@ -48,7 +48,7 @@ def simple_scan():
         scan_count = 0
         for count, scan in enumerate(scan_generator):
             try:
-                print(f"Raw scan data: {scan}, type: {type(scan)}")
+                #print(f"Raw scan data: {scan}, type: {type(scan)}")
 
                 if isinstance(scan, (list, tuple)) and len(scan) >= 3:
                     quality, angle, distance = scan[0], scan[1], scan[2]

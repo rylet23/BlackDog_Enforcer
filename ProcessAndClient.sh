@@ -1,45 +1,36 @@
 #!/bin/bash
-# Start Car Client on Pi 4
-# This script receives lidar data and controls the RC car
-
 # Configuration
 SCRIPTS_PATH="$HOME/BlackDog_Enforcer"
+MAPPER_SCRIPT="$SCRIPTS_PATH/lidar_mapper.py"
+MONITOR_SCRIPT="$SCRIPTS_PATH/lidar_monitor.py"
 CLIENT_SCRIPT="$SCRIPTS_PATH/client.py"
-PROCESSOR_SCRIPT="$SCRIPTS_PATH/Lidar_Data_Processor.py"
-CONTROLLER_SCRIPT="$SCRIPTS_PATH/Car_Controller.py"
-SERVER_IP="10.33.239.139"  # Pi 5's IP address
+
+# IMPORTANT: Your Pi 5 Server IP
+SERVER_IP="10.33.241.196"
 
 # Colors for output
 GREEN='\033[0;32m'
-RED='\033[0;31m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+RED='\033[0;31m'
+NC='\033[0m' 
 
-echo -e "${GREEN}=== Starting Car Client ===${NC}"
-
-# Check if scripts exist
-for script in "$CLIENT_SCRIPT" "$PROCESSOR_SCRIPT" "$CONTROLLER_SCRIPT"; do
-    if [ ! -f "$script" ]; then
-        echo -e "${RED}Error: Script not found: $script${NC}"
-        exit 1
-    fi
-done
-
-# Check server IP is set
-if [ "$SERVER_IP" == "10.33.239.139" ]; then
-    echo -e "${YELLOW}Warning: Using default server IP: $SERVER_IP${NC}"
-    echo ""
+# 1. Check for Mapping Mode
+if [ "$1" == "map" ]; then
+    echo -e "${YELLOW}=== MODE: MAPPING ENVIRONMENT ===${NC}"
+    # We pass the SERVER_IP to the client.py as an argument
+    python3 "$CLIENT_SCRIPT" --ip "$SERVER_IP" | python3 "$MAPPER_SCRIPT"
+    exit 0
 fi
 
-echo "Connecting to lidar server at: $SERVER_IP:5555"
-echo ""
-echo "Press Ctrl+C to stop"
-echo ""
+# 2. Check for Monitoring Mode
+echo -e "${GREEN}=== MODE: MONITORING & ENFORCING ===${NC}"
 
-# Update the client script with correct IP (inline sed)
-sed -i "s/SERVER_IP = .*/SERVER_IP = '$SERVER_IP'/" "$CLIENT_SCRIPT"
+# Check if baseline exists before starting
+if [ ! -f "room_baseline.json" ]; then
+    echo -e "${RED}Error: room_baseline.json not found!${NC}"
+    echo -e "${YELLOW}Please run: ./ProcessAndClient.sh map${NC}"
+    exit 1
+fi
 
-# Run the pipeline
-python3 "$CLIENT_SCRIPT" | python3 "$PROCESSOR_SCRIPT" #| python3 "$CONTROLLER_SCRIPT" can add later when it works
-
-echo -e "${GREEN}Client stopped${NC}"
+# Pipe the client data (with IP) into the monitor
+python3 "$CLIENT_SCRIPT" --ip "$SERVER_IP" | python3 "$MONITOR_SCRIPT"

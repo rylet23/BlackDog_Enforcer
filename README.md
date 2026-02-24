@@ -191,22 +191,22 @@ FORWARD_ANGLE_RANGE = 30      # Forward cone (degrees)
 
 ## Development Status
 
-### Completed ✅
+### Completed 
 - [x] Dual-Pi network communication
 - [x] RPLidar integration and data streaming
 - [x] Real-time target detection pipeline
 - [x] Modular software architecture
 - [x] Emergency shutdown handling
+- [x] ZED camera classification
+- [x] Motor control integration
+- [x] CNN-based animal classification
 
-### In Progress 🚧
-- [ ] Motor control integration
+### In Progress 
 - [ ] Autonomous navigation algorithm
-- [ ] ZED camera classification
 - [ ] Audio deterrent system
 - [ ] Field testing procedures
 
-### Planned 📋
-- [ ] CNN-based animal classification
+### Planned 
 - [ ] Multi-target tracking
 - [ ] Event logging system
 - [ ] Battery monitoring
@@ -294,8 +294,10 @@ This project is developed for educational purposes as part of the ERAU Senior De
 For questions about this project, please contact the team through GitHub issues or reach out to:
 - Project Lead: [@rylet23](https://github.com/rylet23)
 - Software Lead: [@Cturner-24](https://github.com/Cturner-24)
+- Hardware Lead: Colin Becker []
+- Project Manager: Robert Chaney []
 
 ---
 
-**Project Status:** 🚧 Active Development (Spring 2026)  
+**Project Status:** Active Development (Spring 2026)  
 **Last Updated:** February 2026

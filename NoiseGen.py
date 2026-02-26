@@ -8,5 +8,5 @@ def NoiseOn(target == True):
         GPIO.output(17, True)
 
 def NoiseOff(target == False):
-    while Tue:
+    while True:
 	GPIO.output(17, False)

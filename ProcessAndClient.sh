@@ -1,12 +1,12 @@
 #!/bin/bash
 # Configuration
-SCRIPTS_PATH="$HOME/BlackDog_Enforcer/BlackDog_Enforcer"
-MAPPER_SCRIPT="$SCRIPTS_PATH/lidar_mapper.py"
-MONITOR_SCRIPT="$SCRIPTS_PATH/lidar_monitor.py"
+SCRIPTS_PATH="$HOME/BlackDog_Enforcer"
+MAPPER_SCRIPT="$SCRIPTS_PATH/Lidar_Mapper.py"
+MONITOR_SCRIPT="$SCRIPTS_PATH/Lidar_Monitor.py"
 CLIENT_SCRIPT="$SCRIPTS_PATH/client.py"
 
 # IMPORTANT: Your Pi 5 Server IP
-SERVER_IP="10.33.241.196"
+SERVER_IP="10.33.138.61"
 
 # Colors for output
 GREEN='\033[0;32m'

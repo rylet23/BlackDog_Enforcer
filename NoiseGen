@@ -2,5 +2,12 @@ import RPi.GPIO as GPIO
 import time
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(17, GPIO.OUT)
-while True:
-    GPIO.output(17, True)
+
+
+def trigger_noise(target_detected):
+    while target_detected == True:
+        GPIO.output(17,True)
+
+def stop_noise(target_detected):
+    while target_detected == False:
+        GPIO.output(17,False)

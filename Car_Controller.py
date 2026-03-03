@@ -1,5 +1,6 @@
 import sys
 import json
+import NoiseGen
 
 # Configuration
 STOP_DISTANCE = 200  # mm - stop if closer than this

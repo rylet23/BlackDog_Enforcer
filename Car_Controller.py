@@ -18,7 +18,7 @@ esc.start(0)
 steer.start(0)
 
 # Configuration
-CONFIDENCE_THRESHOLD = 0.80
+CONFIDENCE_THRESHOLD = 0.90
 DRIVE_DURATION = 2.0  # seconds
 
 def set_throttle(percent):
@@ -47,10 +47,12 @@ def drive_forward(duration):
     #print(f"{'=' * 50}\n", file=sys.stderr)
 
     #Drive Forward for 2 Seconds
-    set_throttle(25)
-    time.sleep(2)
-    #Turn off motor after 2 seconds
-    set_throttle(0)
+    if CONFIDENCE_THRESHOLD >= 0.90:
+        set_throttle(25)
+        time.sleep(2)
+    elif CONFIDENCE_THRESHOLD >= 0.80:
+        set_throttle(0)
+
 
     #print(f"\n{'=' * 50}", file=sys.stderr)
     print("\n DRIVE SEQUENCE COMPLETE - STOPPED", file=sys.stderr)

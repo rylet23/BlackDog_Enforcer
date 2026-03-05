@@ -1,89 +1,96 @@
 import sys
 import json
+import time
+import RPI.GPIO as GPIO #throws an error if not on a Raspberry pi
+
+# --- Pin setup ---
+ESC_PIN = 18      # throttle
+STEER_PIN = 17    # steering servo
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(ESC_PIN, GPIO.OUT)
+GPIO.setup(STEER_PIN, GPIO.OUT)
+
+# --- PWM setup (50Hz for both) ---
+esc = GPIO.PWM(ESC_PIN, 50)
+steer = GPIO.PWM(STEER_PIN, 50)
+esc.start(0)
+steer.start(0)
 
 # Configuration
-STOP_DISTANCE = 200  # mm - stop if closer than this
-FORWARD_ANGLE_RANGE = 30  # degrees - consider angles within ±30° as "forward"
+CONFIDENCE_THRESHOLD = 0.80
+DRIVE_DURATION = 2.0  # seconds
 
+def set_throttle(percent):
+    """-100..100 => reverse..forward"""
+    percent = max(-100, min(100, percent))
+    duty = 7.5 + (percent / 200) * 5  # 5?10%
+    esc.ChangeDutyCycle(duty)
 
-def calculate_steering(angle):
+def set_steering(angle):
+    """-100..100 => full left..full right"""
+    angle = max(-100, min(100, angle))
+    duty = 7.5 + (angle / 200) * 5  # 5?10%
+    steer.ChangeDutyCycle(duty)
+
+def drive_forward(duration):
     """
-    Calculate steering direction based on target angle.
-    Returns: 'forward', 'left', 'right', or 'backward'
+    Drive the car forward for specified duration
     """
-    # Normalize angle to -180 to 180 range
-    if angle > 180:
-        angle = angle - 360
+    #Wheels Forward, Motor Off
+    set_throttle(0)
+    set_steering(0)
+    time.sleep(0.5)
 
-    if abs(angle) <= FORWARD_ANGLE_RANGE:
-        return 'forward'
-    elif 90 <= abs(angle) <= 270:
-        return 'backward'
-    elif angle < 0:
-        return 'left'
-    else:
-        return 'right'
+    #print(f"\n{'=' * 50}", file=sys.stderr)
+    print(f"\n DRIVING FORWARD FOR {duration} SECONDS", file=sys.stderr)
+    #print(f"{'=' * 50}\n", file=sys.stderr)
 
+    #Drive Forward for 2 Seconds
+    set_throttle(25)
+    time.sleep(2)
+    #Turn off motor after 2 seconds
+    set_throttle(0)
 
-def control_car(target_data):
-    """
-    Make driving decisions based on target data.
-    """
-    if target_data['status'] == 'no_target':
-        print(f"No target detected. Valid points: {target_data['valid_points']}", file=sys.stderr)
-        # TODO: Add your "search" behavior here
-        # e.g., slowly rotate to scan for targets
-        return
-
-    angle = target_data['angle']
-    distance = target_data['distance']
-
-#    print(f"Target: {angle:.1f}° at {distance:.1f}mm (Q:{target_data['quality']})", file=sys.stderr)
-
-    # Decision logic
-    if distance < STOP_DISTANCE:
-        action = 'stop'
-        print("  ACTION: STOP - Too close!", file=sys.stderr)
-        # TODO: Add your stop code here
-    else:
-        direction = calculate_steering(angle)
-        action = direction
- #       print(f"  ACTION: {direction.upper()}", file=sys.stderr)
-        # TODO: Add your motor control code here
-        # if direction == 'forward':
-        #     # drive forward
-        # elif direction == 'left':
-        #     # turn left
-        # elif direction == 'right':
-        #     # turn right
-
-    # Output action as JSON for potential logging/chaining
-    output = {
-        'action': action,
-        'target_angle': angle,
-        'target_distance': distance
-    }
-#    print(json.dumps(output))
-    sys.stdout.flush()
+    #print(f"\n{'=' * 50}", file=sys.stderr)
+    print("\n DRIVE SEQUENCE COMPLETE - STOPPED", file=sys.stderr)
+    #print(f"{'=' * 50}\n", file=sys.stderr)
 
 
 def main():
     """
-    Read processed lidar data (JSON) from stdin and control car.
-    Usage: ./ProcessAndClient.sh | python3 lidar_processor.py | python3 car_controller.py
+    Read animal detection data (JSON) from stdin and control car.
+    Usage: python3 live_animal_classifier2.py --mode console | python3 Car_Controller.py
     """
-#    print("Car controller started. Waiting for target data...", file=sys.stderr)
+    print("Car controller started. Waiting for animal detections...", file=sys.stderr)
+    print(f"Confidence threshold: {CONFIDENCE_THRESHOLD}", file=sys.stderr)
+    print(f"Drive duration: {DRIVE_DURATION}s\n", file=sys.stderr)
 
     try:
         for line in sys.stdin:
             try:
-                target_data = json.loads(line.strip())
-                control_car(target_data)
+                data = json.loads(line.strip())
+
+                # Check if animal detected with high confidence
+                if data['status'] == 'animal_detected':
+                    confidence = data['confidence']
+
+                    if confidence >= CONFIDENCE_THRESHOLD:
+                        print(f"\nANIMAL CONFIRMED! Confidence: {confidence:.1%}", file=sys.stderr)
+                        drive_forward(DRIVE_DURATION)
+                    else:
+                        print(f"Animal detected but confidence too low: {confidence:.1%}", file=sys.stderr)
+                else:
+                    # No animal or low confidence
+                    pass  # Do nothing
+
             except json.JSONDecodeError:
                 print(f"Invalid JSON: {line}", file=sys.stderr)
+            except KeyError as e:
+                print(f"Missing key in JSON: {e}", file=sys.stderr)
 
     except KeyboardInterrupt:
-        print("\nController stopped", file=sys.stderr)
+        print("\n\nController stopped", file=sys.stderr)
 
 
 if __name__ == "__main__":

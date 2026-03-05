@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 CNN_MODEL_DIR="$HOME/BlackDog_Enforcer/CNN_Model"
-CONFIDENCE_THRESHOLD=0.80  # 80% confidence required
+CONFIDENCE_THRESHOLD=0.90  # 90% confidence required
 INFERENCE_INTERVAL=0.3     # Check every 0.3 seconds
 
 echo -e "${GREEN}=== BlackDog Animal Enforcer ===${NC}"

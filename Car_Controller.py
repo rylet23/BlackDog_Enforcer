@@ -1,7 +1,7 @@
 import sys
 import json
 import time
-import RPI.GPIO as GPIO #throws an error if not on a Raspberry pi
+import RPi.GPIO as GPIO #throws an error if not on a Raspberry pi
 
 # --- Pin setup ---
 ESC_PIN = 18      # throttle

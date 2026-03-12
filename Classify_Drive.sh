@@ -40,10 +40,9 @@ echo -e "${GREEN}Starting system...${NC}"
 echo "Press Ctrl+C to stop"
 echo ""
 
-# Run the pipeline: Classifier → Car Controller
+# Run the classifier — it calls Car_Controller.py directly when an animal is detected
 cd "$CNN_MODEL_DIR"
 python3 live_animal_classifier2.py \
     --mode console \
     --confidence-threshold $CONFIDENCE_THRESHOLD \
-    --interval $INFERENCE_INTERVAL | \
-python3 ../Car_Controller.py
+    --interval $INFERENCE_INTERVAL

@@ -2,14 +2,15 @@
 """
 ZED Live Animal Classifier v2
 Matches training architecture: 128x128 input, nn.Sequential structure.
-Can output to GUI or console (JSON) for piping to car controller.
+Calls Car_Controller.py directly as a subprocess when animal detected above threshold.
 """
-#updated version to use
+
 import cv2
+import os
 import time
 import sys
-import json
 import argparse
+import subprocess
 import torch
 from torch import nn
 from torchvision import transforms
@@ -122,10 +123,13 @@ def main():
         print(f"Confidence threshold: {confidence_threshold}", file=sys.stderr)
         print("Press 'q' to quit\n", file=sys.stderr)
     else:
-        print(f"\n=== CONSOLE MODE (JSON) ===", file=sys.stderr)
+        print(f"\n=== CONSOLE MODE ===", file=sys.stderr)
         print(f"Confidence threshold: {confidence_threshold}", file=sys.stderr)
-        print("Outputting JSON to stdout for piping to car controller", file=sys.stderr)
         print("Press Ctrl+C to quit\n", file=sys.stderr)
+
+    car_controller_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Car_Controller.py')
+    last_drive_time = 0
+    COOLDOWN = 5.0  # seconds between drives
 
     try:
         while True:
@@ -141,27 +145,18 @@ def main():
                 result, confidence = classify_frame(model, frame, transform)
                 last_inference_time = current_time
 
-                # CONSOLE MODE: Output JSON to stdout
                 if args.mode == 'console':
-                    output = {
-                        'status': 'animal_detected' if (
-                                    result == "ANIMAL" and confidence >= confidence_threshold) else 'no_animal',
-                        'confidence': round(confidence, 3),
-                        'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
-                        'threshold': confidence_threshold
-                    }
-
-                    # Print JSON to stdout (can be piped)
-                    print(json.dumps(output))
-                    sys.stdout.flush()
-
-                    # Also print to stderr for human readability
-                    if output['status'] == 'animal_detected':
-                        print(f"\033[91m[ALERT] ANIMAL DETECTED! Confidence: {confidence:.3f}\033[0m", file=sys.stderr)
+                    if result == "ANIMAL" and confidence >= confidence_threshold:
+                        # Check cooldown so we don't stack multiple drives
+                        if current_time - last_drive_time >= COOLDOWN:
+                            print(f"\033[91m[ALERT] ANIMAL DETECTED! Confidence: {confidence:.3f} — Calling Car Controller\033[0m", file=sys.stderr)
+                            subprocess.Popen(['python3', car_controller_path])
+                            last_drive_time = current_time
+                        else:
+                            remaining = COOLDOWN - (current_time - last_drive_time)
+                            print(f"[INFO] Animal detected but cooldown active ({remaining:.1f}s remaining)", file=sys.stderr)
                     else:
                         print(f"[INFO] {result} (Confidence: {confidence:.3f})", file=sys.stderr)
-
-                # GUI MODE: No saving
 
             # GUI MODE: Show window
             if args.mode == 'gui':

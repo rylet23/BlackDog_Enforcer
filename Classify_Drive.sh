@@ -40,21 +40,10 @@ echo -e "${GREEN}Starting system...${NC}"
 echo "Press Ctrl+C to stop"
 echo ""
 
-cd "$CNN_MODEL_DIR"
-
-# Start zed_live.py in the background to show camera feed
-echo -e "${GREEN}Starting camera feed...${NC}"
-python3 zed_live.py &
-ZED_PID=$!
-
 # Run the pipeline: Classifier → Car Controller
+cd "$CNN_MODEL_DIR"
 python3 live_animal_classifier2.py \
     --mode console \
     --confidence-threshold $CONFIDENCE_THRESHOLD \
     --interval $INFERENCE_INTERVAL | \
 python3 ../Car_Controller.py
-
-# Kill the background zed_live process when done
-kill $ZED_PID 2>/dev/null
-
-echo -e "\n${GREEN}System stopped${NC}"

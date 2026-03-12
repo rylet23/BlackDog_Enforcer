@@ -2,16 +2,26 @@ import sys
 import json
 import time
 import select
-import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO #throws an error if not on a Raspberry pi
+
+# --- Pin setup ---
+ESC_PIN = 18      # throttle
+STEER_PIN = 17    # steering servo
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(ESC_PIN, GPIO.OUT)
+GPIO.setup(STEER_PIN, GPIO.OUT)
+
+# --- PWM setup (50Hz for both) ---
+esc = GPIO.PWM(ESC_PIN, 50)
+steer = GPIO.PWM(STEER_PIN, 50)
+esc.start(0)
+steer.start(0)
 
 # Configuration
 CONFIDENCE_THRESHOLD = 0.90
-DRIVE_DURATION = 2.0      # seconds
-COOLDOWN_DURATION = 3.0   # seconds to ignore detections after a drive
-
-# These are set up inside main() so no signals fire on import
-esc = None
-steer = None
+DRIVE_DURATION = 2.0  # seconds
+COOLDOWN_DURATION = 3.0  # seconds to ignore detections after a drive
 
 def set_throttle(percent):
     """-100..100 => reverse..forward"""
@@ -29,6 +39,11 @@ def drive_forward(duration):
     """
     Drive the car forward for specified duration
     """
+    #Wheels Forward, Motor Off
+    set_throttle(0)
+    set_steering(0)
+    time.sleep(0.5)
+
     #print(f"\n{'=' * 50}", file=sys.stderr)
     print(f"\n DRIVING FORWARD FOR {duration} SECONDS", file=sys.stderr)
     #print(f"{'=' * 50}\n", file=sys.stderr)
@@ -64,33 +79,22 @@ def main():
     Read animal detection data (JSON) from stdin and control car.
     Usage: python3 live_animal_classifier2.py --mode console | python3 Car_Controller.py
     """
-    global esc, steer
-
-    # --- Pin setup (done here so no signals fire on import) ---
-    ESC_PIN = 18
-    STEER_PIN = 17
-    GPIO.setwarnings(False)
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(ESC_PIN, GPIO.OUT)
-    GPIO.setup(STEER_PIN, GPIO.OUT)
-
-    # Start PWM with no signal, then arm to neutral with a settle delay
-    esc = GPIO.PWM(ESC_PIN, 50)
-    steer = GPIO.PWM(STEER_PIN, 50)
-    esc.start(0)    # No signal yet
-    steer.start(0)
-
-    print("Arming ESC — holding neutral...", file=sys.stderr)
-    set_throttle(0)   # Send neutral (7.5%) now
-    set_steering(0)
-    time.sleep(2.0)   # Give ESC time to arm and settle before we accept any detections
-    print("ESC armed and ready.", file=sys.stderr)
     print("Car controller started. Waiting for animal detections...", file=sys.stderr)
     print(f"Confidence threshold: {CONFIDENCE_THRESHOLD}", file=sys.stderr)
     print(f"Drive duration: {DRIVE_DURATION}s", file=sys.stderr)
     print(f"Cooldown duration: {COOLDOWN_DURATION}s\n", file=sys.stderr)
 
-    last_drive_time = 0  # epoch 0 means no cooldown on startup
+    # Arm the ESC exactly like drive.py does
+    print("Arming ESC...", file=sys.stderr)
+    set_throttle(0)
+    set_steering(0)
+    time.sleep(3)
+    print("ESC armed. Ready.\n", file=sys.stderr)
+
+    # Drain anything the classifier buffered while we were arming
+    drain_stdin_buffer()
+
+    last_drive_time = 0
 
     try:
         for line in sys.stdin:

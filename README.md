@@ -10,7 +10,7 @@ The BlackDog Enforcer is our senior capstone project: an autonomous RC vehicle t
 ### Team Members
 - **Ryle Traub** - [@rylet23](https://github.com/rylet23)
 - **Cole Turner** - [@Cturner-24](https://github.com/Cturner-24)
-- **Robert Chaney**
+- **Robert Chaney** - [@ChaneyErau](https://github.com/chaneyerau)
 - **Colin Becker**
 
 **Faculty Advisor:** Dr. Towhidnejad  

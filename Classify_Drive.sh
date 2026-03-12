@@ -36,20 +36,25 @@ echo -e "${GREEN}✓ Model found${NC}"
 echo -e "${GREEN}✓ Camera found${NC}"
 echo ""
 
-# Trap signals for clean shutdown
-trap 'echo -e "\n${YELLOW}Shutting down...${NC}"; kill -TERM $$; exit 0' INT TERM
-
 echo -e "${GREEN}Starting system...${NC}"
 echo "Press Ctrl+C to stop"
 echo ""
 
-# Run the pipeline: Classifier → Car Controller
 cd "$CNN_MODEL_DIR"
+
+# Start zed_live.py in the background to show camera feed
+echo -e "${GREEN}Starting camera feed...${NC}"
+python3 zed_live.py &
+ZED_PID=$!
+
+# Run the pipeline: Classifier → Car Controller
 python3 live_animal_classifier2.py \
     --mode console \
     --confidence-threshold $CONFIDENCE_THRESHOLD \
     --interval $INFERENCE_INTERVAL | \
 python3 ../Car_Controller.py
 
-# Cleanup on exit
+# Kill the background zed_live process when done
+kill $ZED_PID 2>/dev/null
+
 echo -e "\n${GREEN}System stopped${NC}"

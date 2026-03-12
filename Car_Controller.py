@@ -42,7 +42,7 @@ def drive_forward(duration):
     #Wheels Forward, Motor Off
     set_throttle(0)
     set_steering(0)
-    time.sleep(0.5)
+    #time.sleep(0.5)
 
     #print(f"\n{'=' * 50}", file=sys.stderr)
     print(f"\n DRIVING FORWARD FOR {duration} SECONDS", file=sys.stderr)
@@ -79,16 +79,11 @@ def main():
     Read animal detection data (JSON) from stdin and control car.
     Usage: python3 live_animal_classifier2.py --mode console | python3 Car_Controller.py
     """
-    print("Car controller started. Waiting for animal detections...", file=sys.stderr)
-    print(f"Confidence threshold: {CONFIDENCE_THRESHOLD}", file=sys.stderr)
-    print(f"Drive duration: {DRIVE_DURATION}s", file=sys.stderr)
-    print(f"Cooldown duration: {COOLDOWN_DURATION}s\n", file=sys.stderr)
-
     # Arm the ESC exactly like drive.py does
     print("Arming ESC...", file=sys.stderr)
     set_throttle(0)
     set_steering(0)
-    time.sleep(3)
+    #time.sleep(3)
     print("ESC armed. Ready.\n", file=sys.stderr)
 
     # Drain anything the classifier buffered while we were arming

@@ -47,13 +47,9 @@ def drive_forward(duration):
     #print(f"{'=' * 50}\n", file=sys.stderr)
 
     #Drive Forward for 2 Seconds
-    if CONFIDENCE_THRESHOLD >= 0.90:
-        set_throttle(25)
-        time.sleep(2)
-        set_throttle(0)
-    elif CONFIDENCE_THRESHOLD >= 0.80:
-        set_throttle(0)
-
+    set_throttle(25)
+    time.sleep(duration)
+    set_throttle(0)  # STOP the car
 
     #print(f"\n{'=' * 50}", file=sys.stderr)
     print("\n DRIVE SEQUENCE COMPLETE - STOPPED", file=sys.stderr)
@@ -78,6 +74,7 @@ def main():
                 if data['status'] == 'animal_detected':
                     confidence = data['confidence']
 
+                    # Compare actual confidence value, not the constant!
                     if confidence >= CONFIDENCE_THRESHOLD:
                         print(f"\nANIMAL CONFIRMED! Confidence: {confidence:.1%}", file=sys.stderr)
                         drive_forward(DRIVE_DURATION)
@@ -94,6 +91,13 @@ def main():
 
     except KeyboardInterrupt:
         print("\n\nController stopped", file=sys.stderr)
+    finally:
+        # Clean shutdown
+        set_throttle(0)
+        set_steering(0)
+        esc.stop()
+        steer.stop()
+        GPIO.cleanup()
 
 
 if __name__ == "__main__":

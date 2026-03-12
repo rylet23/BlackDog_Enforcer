@@ -37,7 +37,7 @@ echo -e "${GREEN}✓ Camera found${NC}"
 echo ""
 
 # Trap signals for clean shutdown
-trap 'echo -e "\n${YELLOW}Shutting down...${NC}"; kill 0; exit 0' INT TERM
+trap 'echo -e "\n${YELLOW}Shutting down...${NC}"; kill -TERM $$; exit 0' INT TERM
 
 echo -e "${GREEN}Starting system...${NC}"
 echo "Press Ctrl+C to stop"

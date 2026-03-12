@@ -50,6 +50,7 @@ def drive_forward(duration):
     if CONFIDENCE_THRESHOLD >= 0.90:
         set_throttle(25)
         time.sleep(2)
+        set_throttle(0)
     elif CONFIDENCE_THRESHOLD >= 0.80:
         set_throttle(0)
 

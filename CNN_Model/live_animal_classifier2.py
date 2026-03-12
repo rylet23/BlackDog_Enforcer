@@ -4,7 +4,7 @@ ZED Live Animal Classifier v2
 Matches training architecture: 128x128 input, nn.Sequential structure.
 Can output to GUI or console (JSON) for piping to car controller.
 """
-
+#updated version to use
 import cv2
 import time
 import sys

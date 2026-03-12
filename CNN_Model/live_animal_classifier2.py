@@ -79,7 +79,7 @@ def main():
     parser = argparse.ArgumentParser(description='ZED Live Animal Classifier')
     parser.add_argument('--mode', choices=['gui', 'console'], default='gui',
                         help='Output mode: gui (display window) or console (JSON output)')
-    parser.add_argument('--confidence-threshold', type=float, default=0.80,
+    parser.add_argument('--confidence-threshold', type=float, default=0.90,
                         help='Confidence threshold for animal detection (default: 0.80)')
     parser.add_argument('--interval', type=float, default=0.3,
                         help='Inference interval in seconds (default: 0.3)')

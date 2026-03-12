@@ -6,7 +6,7 @@ MONITOR_SCRIPT="$SCRIPTS_PATH/Lidar_Monitor.py"
 CLIENT_SCRIPT="$SCRIPTS_PATH/client.py"
 
 # IMPORTANT: Your Pi 5 Server IP
-SERVER_IP="10.33.138.61"
+SERVER_IP="10.33.168.158"
 
 # Colors for output
 GREEN='\033[0;32m'

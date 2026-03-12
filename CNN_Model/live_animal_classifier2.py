@@ -68,7 +68,7 @@ def classify_frame(model, frame, transform):
 
         # Note: In your training script, binary_labels = (labels > 0)
         # This usually means the second folder loaded is the "Positive" (1) class.
-        prediction = (confidence > 0.5)
+        prediction = (confidence > 0.9)
 
     result = "ANIMAL" if prediction else "NOT ANIMAL"
     return result, confidence

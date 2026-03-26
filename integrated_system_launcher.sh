@@ -39,12 +39,12 @@ else
     echo -e "${GREEN}✓ Car_Controller found${NC}"
 fi
 
-if [ ! -f "$SCRIPTS_PATH/Obstruction_Handler.py" ]; then
-    echo -e "${RED}✗ Obstruction_Handler.py not found!${NC}"
-    echo -e "${YELLOW}Make sure you created Obstruction_Handler.py${NC}"
+if [ ! -f "$SCRIPTS_PATH/obstruction_handler.py" ]; then
+    echo -e "${RED}obstruction_handler.py not found!${NC}"
+    echo -e "${YELLOW}Make sure you created obstruction_handler.py${NC}"
     exit 1
 else
-    echo -e "${GREEN}✓ Obstruction_Handler found${NC}"
+    echo -e "${GREEN}obstruction_handler found${NC}"
 fi
 
 echo ""

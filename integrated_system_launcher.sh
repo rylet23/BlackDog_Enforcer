@@ -50,6 +50,45 @@ fi
 echo ""
 echo -e "${GREEN}All prerequisites met!${NC}"
 echo ""
+
+# Handle mapping mode
+if [ "$1" == "--map" ]; then
+    echo -e "${YELLOW}=== MAPPING MODE ===${NC}"
+    echo "Creating baseline map from LIDAR data..."
+    echo "This will take ~1-2 minutes. Please keep environment still."
+    echo ""
+    
+    cd "$SCRIPTS_PATH"
+    python3 client.py --ip "$SERVER_IP" | python3 Lidar_Mapper.py -n 100
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ Baseline map created successfully!${NC}"
+        echo "You can now run: ./run_integrated_system.sh"
+    else
+        echo -e "${RED}✗ Mapping failed${NC}"
+        exit 1
+    fi
+    exit 0
+fi
+
+# Handle help
+if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+    echo "Usage: ./run_integrated_system.sh [OPTIONS] [SERVER_IP]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  --map              Create/update baseline map"
+    echo "  --help             Show this help message"
+    echo ""
+    echo "ARGUMENTS:"
+    echo "  SERVER_IP          IP of Pi 5 server (default: 10.33.134.54)"
+    echo ""
+    echo "EXAMPLES:"
+    echo "  ./run_integrated_system.sh                    # Run with default IP"
+    echo "  ./run_integrated_system.sh 192.168.1.100     # Run with custom IP"
+    echo "  ./run_integrated_system.sh --map              # Create baseline"
+    exit 0
+fi
+
 echo -e "${YELLOW}Starting integrated system...${NC}"
 echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
 echo ""

@@ -3,7 +3,7 @@ import re
 import json
 import math
 import Car_Controller
-from Obstruction_Handler import ObstructionHandler
+from obstruction_handler import ObstructionHandler
 
 # --- Configuration ---
 MIN_QUALITY = 10

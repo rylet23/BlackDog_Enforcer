@@ -6,7 +6,7 @@ MONITOR_SCRIPT="$SCRIPTS_PATH/Lidar_Monitor.py"
 CLIENT_SCRIPT="$SCRIPTS_PATH/client.py"
 
 # IMPORTANT: Your Pi 5 Server IP
-SERVER_IP="10.33.138.61"
+SERVER_IP="10.33.168.158"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -24,6 +24,11 @@ fi
 
 # 2. Check for Monitoring Mode
 echo -e "${GREEN}=== MODE: MONITORING & ENFORCING ===${NC}"
+echo -e "${YELLOW}LiDAR will detect obstructions and trigger:${NC}"
+echo -e "  1. Steering car to face object"
+echo -e "  2. Running CNN classification"
+echo -e "  3. Executing avoidance if confirmed"
+echo ""
 
 # Check if baseline exists before starting
 if [ ! -f "room_baseline.json" ]; then

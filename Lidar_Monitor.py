@@ -2,46 +2,118 @@ import sys
 import re
 import json
 import math
+import Car_Controller
+from obstruction_handler import ObstructionHandler
 
 # --- Configuration ---
 MIN_QUALITY = 10
 CHANGE_THRESHOLD = 150 
 BASELINE_FILE = 'room_baseline.json'
+CLUSTER_THRESHOLD = 100  # Max distance (mm) between points to be in the same "island"
+MIN_POINTS_PER_OBJECT = 3 # Ignore noise (1 or 2 stray points)
 
-
-def trigger_cnn_model(x, y, distance, obs_type):
+def trigger_cnn_model(object_data):
     """
-    This is the specific function you requested to be called 
-    to pass data to your CNN model.
+    Triggers once per clustered object.
+    object_data contains: avg_x, avg_y, width, height, point_count
     """
-    print(f"!!! TRIGGERING CNN: {obs_type} at X:{x} Y:{y} (Dist: {distance}mm)")
+    print(f"!!! OBJECT DETECTED: {object_data['type']} !!!")
+    print(f"Location: ({object_data['x']}, {object_data['y']}) | Size: {object_data['w']}x{object_data['h']}mm")
     # Your CNN model logic goes here
 
-def parse_lidar_line(line):
-    match = re.search(r'theta:\s*([\d.]+)\s+Dist:\s*([\d.]+)\s+Q:\s*(\d+)', line)
-    if match:
-        return {'theta': float(match.group(1)), 'distance': float(match.group(2)), 'quality': int(match.group(3))}
-    return None
+# Initialize obstruction handler with car controller
+obstruction_handler = ObstructionHandler(Car_Controller)
+
+def get_clusters(points):
+    """Simple distance-based clustering (Friend-of-friend)"""
+    clusters = []
+    for p in points:
+        found_cluster = False
+        for c in clusters:
+            # Check distance to the last point added to the cluster for speed
+            # or check distance to cluster centroid for accuracy
+            dist = math.sqrt((p['x'] - c['centroid_x'])**2 + (p['y'] - c['centroid_y'])**2)
+            if dist < CLUSTER_THRESHOLD:
+                c['points'].append(p)
+                # Update centroid (running average)
+                n = len(c['points'])
+                c['centroid_x'] = ((c['centroid_x'] * (n-1)) + p['x']) / n
+                c['centroid_y'] = ((c['centroid_y'] * (n-1)) + p['y']) / n
+                found_cluster = True
+                break
+        if not found_cluster:
+            clusters.append({'centroid_x': p['x'], 'centroid_y': p['y'], 'points': [p]})
+    return clusters
 
 def monitor_stream(baseline):
-    print("Monitoring for obstructions...")
+    print("Monitoring for objects (islands)...")
+    current_scan_points = []
+    last_theta = 0
+
     for line in sys.stdin:
-        p = parse_lidar_line(line)
-        if p and p['quality'] >= MIN_QUALITY:
-            angle_rad = math.radians(p['theta'])
-            x = p['distance'] * math.cos(angle_rad)
-            y = p['distance'] * math.sin(angle_rad)
-            
+        match = re.search(r'theta:\s*([\d.]+)\s+Dist:\s*([\d.]+)\s+Q:\s*(\d+)', line)
+        if not match: continue
+        
+        theta = float(match.group(1))
+        dist = float(match.group(2))
+        qual = int(match.group(3))
+
+        # Check if we've completed a full rotation (360 -> 0)
+        if theta < last_theta:
+            process_frame(current_scan_points)
+            current_scan_points = []
+        
+        last_theta = theta
+
+        if qual >= MIN_QUALITY:
+            rad = math.radians(theta)
+            x = dist * math.cos(rad)
+            y = dist * math.sin(rad)
             grid_key = f"{int(x // 50) * 50},{int(y // 50) * 50}"
 
-            # Check against baseline
+            # Filter: Is this point actually an obstruction?
+            is_obs = False
             if grid_key not in baseline:
-                # 1. New object in empty space
-                trigger_cnn_model(round(x, 2), round(y, 2), p['distance'], "NEW_OBJECT")
+
+                is_obs = True
+            elif (baseline[grid_key] - dist) > CHANGE_THRESHOLD:
+                is_obs = True
+            
+            if is_obs:
+                current_scan_points.append({'x': x, 'y': y, 'dist': dist})
+
+def process_frame(points):
+    if not points: return
+    
+    clusters = get_clusters(points)
+    
+    for c in clusters:
+        if len(c['points']) >= MIN_POINTS_PER_OBJECT:
+            # Calculate Bounding Box
+            xs = [p['x'] for p in c['points']]
+            ys = [p['y'] for p in c['points']]
+            
+            obj_payload = {
+                'x': round(c['centroid_x'], 2),
+                'y': round(c['centroid_y'], 2),
+                'w': round(max(xs) - min(xs), 2),
+                'h': round(max(ys) - min(ys), 2),
+                'count': len(c['points']),
+                'type': "DETECTED_ISLAND"
+            }
+            trigger_cnn_model(obj_payload)
+
+                # New object in empty space
+                obstruction_handler.handle_obstruction(
+                    round(x, 2), round(y, 2), p['distance'], "NEW_OBJECT"
+                )
             
             elif (baseline[grid_key] - p['distance']) > CHANGE_THRESHOLD:
-                # 2. Object is significantly closer than the wall/baseline
-                trigger_cnn_model(round(x, 2), round(y, 2), p['distance'], "MOVED_OBJECT")
+                # Object significantly closer than baseline
+                obstruction_handler.handle_obstruction(
+                    round(x, 2), round(y, 2), p['distance'], "MOVED_OBJECT"
+                )
+
 
 if __name__ == "__main__":
     try:
@@ -49,6 +121,4 @@ if __name__ == "__main__":
             baseline_data = json.load(f)
         monitor_stream(baseline_data)
     except FileNotFoundError:
-        print(f"Error: {BASELINE_FILE} not found. Run lidar_mapper.py first.")
-    except KeyboardInterrupt:
-        sys.exit(0)
+        print(f"Error: {BASELINE_FILE} not found.")

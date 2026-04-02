@@ -12,6 +12,7 @@ NC='\033[0m' # No Color
 CNN_MODEL_DIR="$HOME/BlackDog_Enforcer/CNN_Model"
 CONFIDENCE_THRESHOLD=0.90  # 90% confidence required
 INFERENCE_INTERVAL=0.3     # Check every 0.3 seconds
+MODE=${1:-console}         # Pass 'gui' as first arg, defaults to console
 
 echo -e "${GREEN}=== BlackDog Animal Enforcer ===${NC}"
 echo -e "Confidence Threshold: ${YELLOW}${CONFIDENCE_THRESHOLD}${NC}"
@@ -32,18 +33,17 @@ if [ ! -e "/dev/video0" ]; then
     exit 1
 fi
 
-echo -e "${GREEN}✓ Model found${NC}"
-echo -e "${GREEN}✓ Camera found${NC}"
+echo -e "${GREEN} Model found${NC}"
+echo -e "${GREEN} Camera found${NC}"
 echo ""
 
 echo -e "${GREEN}Starting system...${NC}"
 echo "Press Ctrl+C to stop"
 echo ""
 
-# Run the pipeline: Classifier → Car Controller
+# Run the classifier — it calls Car_Controller.py directly when an animal is detected
 cd "$CNN_MODEL_DIR"
 python3 live_animal_classifier2.py \
-    --mode console \
+    --mode $MODE \
     --confidence-threshold $CONFIDENCE_THRESHOLD \
-    --interval $INFERENCE_INTERVAL | \
-python3 ../Car_Controller.py
+    --interval $INFERENCE_INTERVAL

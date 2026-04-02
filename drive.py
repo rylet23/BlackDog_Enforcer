@@ -1,4 +1,4 @@
-import RPI.GPIO as GPIO #throws an error if not on a Raspberry pi
+import RPi.GPIO as GPIO #throws an error if not on a Raspberry pi
 import time
 
 # --- Pin setup ---

@@ -1,12 +1,12 @@
 import RPi.GPIO as GPIO
 import time
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(17, GPIO.OUT)
+GPIO.setup(6, GPIO.OUT)
 
 def NoiseOn(target == True):
     while True:
-        GPIO.output(17, True)
+        GPIO.output(6, True)
 
 def NoiseOff(target == False):
     while True:
-	GPIO.output(17, False)
+	GPIO.output(6, False)

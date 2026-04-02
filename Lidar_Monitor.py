@@ -104,15 +104,15 @@ def process_frame(points):
             trigger_cnn_model(obj_payload)
 
                 # New object in empty space
-                obstruction_handler.handle_obstruction(
-                    round(x, 2), round(y, 2), p['distance'], "NEW_OBJECT"
+            obstruction_handler.handle_obstruction(
+                round(x, 2), round(y, 2), p['distance'], "NEW_OBJECT"
                 )
             
-            elif (baseline[grid_key] - p['distance']) > CHANGE_THRESHOLD:
+        elif (baseline[grid_key] - p['distance']) > CHANGE_THRESHOLD:
                 # Object significantly closer than baseline
-                obstruction_handler.handle_obstruction(
-                    round(x, 2), round(y, 2), p['distance'], "MOVED_OBJECT"
-                )
+            obstruction_handler.handle_obstruction(
+                round(x, 2), round(y, 2), p['distance'], "MOVED_OBJECT"
+            )
 
 
 if __name__ == "__main__":

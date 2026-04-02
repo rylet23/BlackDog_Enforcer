@@ -2,6 +2,8 @@ import sys
 import re
 import json
 import math
+import Car_Controller
+from obstruction_handler import ObstructionHandler
 
 # --- Configuration ---
 MIN_QUALITY = 10
@@ -18,6 +20,9 @@ def trigger_cnn_model(object_data):
     print(f"!!! OBJECT DETECTED: {object_data['type']} !!!")
     print(f"Location: ({object_data['x']}, {object_data['y']}) | Size: {object_data['w']}x{object_data['h']}mm")
     # Your CNN model logic goes here
+
+# Initialize obstruction handler with car controller
+obstruction_handler = ObstructionHandler(Car_Controller)
 
 def get_clusters(points):
     """Simple distance-based clustering (Friend-of-friend)"""
@@ -69,6 +74,7 @@ def monitor_stream(baseline):
             # Filter: Is this point actually an obstruction?
             is_obs = False
             if grid_key not in baseline:
+
                 is_obs = True
             elif (baseline[grid_key] - dist) > CHANGE_THRESHOLD:
                 is_obs = True
@@ -96,6 +102,18 @@ def process_frame(points):
                 'type': "DETECTED_ISLAND"
             }
             trigger_cnn_model(obj_payload)
+
+                # New object in empty space
+                obstruction_handler.handle_obstruction(
+                    round(x, 2), round(y, 2), p['distance'], "NEW_OBJECT"
+                )
+            
+            elif (baseline[grid_key] - p['distance']) > CHANGE_THRESHOLD:
+                # Object significantly closer than baseline
+                obstruction_handler.handle_obstruction(
+                    round(x, 2), round(y, 2), p['distance'], "MOVED_OBJECT"
+                )
+
 
 if __name__ == "__main__":
     try:

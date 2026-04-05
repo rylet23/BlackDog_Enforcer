@@ -37,7 +37,7 @@ try:
     time.sleep(1)
 
     print("Forward 25%, turn right")
-    set_throttle(25)
+    set_throttle(10)
     set_steering(50)
     time.sleep(2)
 
@@ -50,8 +50,8 @@ try:
     time.sleep(2)
 
     print("Stop")
-    set_throttle(0)
     set_steering(0)
+    set_throttle(0)
     time.sleep(1)
 
 finally:

@@ -29,17 +29,14 @@ def set_steering(angle):
     duty = 7.5 + (angle / 200) * 5
     steer.ChangeDutyCycle(duty)
 
-# Add these functions to be callable from other modules
 def drive_forward(throttle_percent=25, duration=2.0):
     """Drive forward for specified duration"""
-    import time
     set_throttle(throttle_percent)
     time.sleep(duration)
     set_throttle(0)
 
 def turn_to_angle(steering_angle, duration=0.5):
     """Turn to specific angle"""
-    import time
     set_steering(steering_angle)
     time.sleep(duration)
     set_steering(0)
@@ -49,22 +46,27 @@ def stop_all():
     set_throttle(0)
     set_steering(0)
 
-try:
+def arm_esc():
+    """Arm the ESC - call this once before using throttle"""
     print("Arming ESC...")
     set_throttle(0)
     set_steering(0)
     time.sleep(3)
-    print("ESC armed. Driving forward...")
+    print("ESC armed.")
 
-    set_throttle(25)
-    set_steering(0)
-    time.sleep(DRIVE_DURATION)
-
-    set_throttle(0)
-    print("Drive complete. Stopped.")
-
-finally:
+def cleanup():
+    """Cleanly shut down PWM and GPIO - call only when fully done"""
     esc.stop()
     steer.stop()
     GPIO.cleanup()
 
+
+# --- Only runs when executed directly, NOT when imported ---
+# This prevents GPIO.cleanup() from destroying PWM channels
+# when Car_Controller is imported by obstruction_handler or other modules
+if __name__ == "__main__":
+    try:
+        arm_esc()
+        print("Car_Controller ready.")
+    finally:
+        cleanup()

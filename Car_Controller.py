@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 import time
 
 # --- Pin setup ---
-ESC_PIN = 18
+ESC_PIN = 23
 STEER_PIN = 17
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)

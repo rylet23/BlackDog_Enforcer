@@ -163,7 +163,7 @@ class ObstructionHandler:
         # Clamp between 0.5s (close) and 3.0s (far) based on distance in mm
         drive_duration = max(0.5, min(3.0, distance / 1000.0))
         print(f"[DRIVING] Driving toward object for {drive_duration:.1f}s")
-        self.car_controller.set_throttle(30)
+        self.car_controller.set_throttle(10)
         time.sleep(drive_duration)
 
         # Stop and re-center steering

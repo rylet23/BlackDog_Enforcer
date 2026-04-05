@@ -3,7 +3,7 @@ import time
 
 # --- Pin setup ---
 ESC_PIN = 17      # throttle
-STEER_PIN = 23    # steering servo
+STEER_PIN = 18    # steering servo
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(ESC_PIN, GPIO.OUT)

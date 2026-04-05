@@ -3,7 +3,7 @@ import time
 
 # --- Pin setup ---
 ESC_PIN = 17
-STEER_PIN = 23
+STEER_PIN = 18
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(ESC_PIN, GPIO.OUT)

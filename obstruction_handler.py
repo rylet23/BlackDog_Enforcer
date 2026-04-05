@@ -117,7 +117,7 @@ class ObstructionHandler:
                 ['python3', 'CNN_Model/live_animal_classifier2.py', 
                  '--mode', 'single_inference',
                  '--confidence-threshold', '0.90'],
-                cwd='/home/pi/BlackDog_Enforcer',  # Adjust path as needed
+                cwd='/home/blackdog1/BlackDog_Enforcer',  # Adjust path as needed
                 capture_output=True,
                 text=True,
                 timeout=5

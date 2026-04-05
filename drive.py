@@ -2,8 +2,8 @@ import RPi.GPIO as GPIO #throws an error if not on a Raspberry pi
 import time
 
 # --- Pin setup ---
-ESC_PIN = 18      # throttle
-STEER_PIN = 17    # steering servo
+ESC_PIN = 17      # throttle
+STEER_PIN = 23    # steering servo
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(ESC_PIN, GPIO.OUT)

@@ -39,6 +39,13 @@ class ObstructionHandler:
         # Step 1: Calculate steering angle to face object
         steering_angle = self.calculate_steering_angle(x, y)
 
+        # Skip objects behind the rover (angle clamped to ±100 means > ±90° from forward)
+        # These would require reversing which risks hitting walls
+        raw_angle = math.degrees(math.atan2(y, x))
+        if abs(raw_angle) > 90:
+            print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f}°) - ignoring")
+            return
+
         self.current_obstruction = {
             'x': x,
             'y': y,
@@ -87,6 +94,7 @@ class ObstructionHandler:
     def steer_to_object(self, steering_angle):
         """
         Command car steering to face the detected obstruction.
+        Zeroes the servo first to ensure accurate positioning.
 
         Args:
             steering_angle: -100 (left) to 100 (right)
@@ -94,6 +102,9 @@ class ObstructionHandler:
         self.state = ObstructionState.STEERING_TO_OBJECT
         print(f"[STEERING] Turning to angle: {steering_angle}°")
 
+        # Zero servo first so the new angle is applied from a known position
+        self.car_controller.set_steering(0)
+        time.sleep(0.3)
         self.car_controller.set_steering(steering_angle)
         time.sleep(0.5)
 
@@ -163,7 +174,7 @@ class ObstructionHandler:
         # Clamp between 0.5s (close) and 3.0s (far) based on distance in mm
         drive_duration = max(0.5, min(3.0, distance / 1000.0))
         print(f"[DRIVING] Driving toward object for {drive_duration:.1f}s")
-        self.car_controller.set_throttle(10)
+        self.car_controller.set_throttle(30)
         time.sleep(drive_duration)
 
         # Stop and re-center steering

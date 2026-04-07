@@ -78,23 +78,24 @@ def process_scan(scan_data):
 
     for coord, dist in current_grid.items():
         # Case A: Object detected where baseline was empty
-        if coord not in baseline_grid:
-            obstruction_map[str(coord)] = {
-                "x": coord[0], 
-                "y": coord[1], 
-                "dist": dist, 
-                "type": "NEW_OBJECT"
-            }
-        
-        # Case B: Object detected, but distance is significantly different (closer or further)
-        elif abs(dist - baseline_grid[coord]) > CHANGE_THRESHOLD:
-            obstruction_map[str(coord)] = {
-                "x": coord[0], 
-                "y": coord[1], 
-                "dist": dist, 
-                "delta": round(dist - baseline_grid[coord], 2),
-                "type": "MOVED_OBJECT"
-            }
+        if MIN_DISTANCE <= dist <= MAX_DISTANCE:
+            if coord not in baseline_grid:
+                obstruction_map[str(coord)] = {
+                    "x": coord[0], 
+                    "y": coord[1], 
+                    "dist": dist, 
+                    "type": "NEW_OBJECT"
+                }
+            
+            # Case B: Object detected, but distance is significantly different (closer or further)
+            elif abs(dist - baseline_grid[coord]) > CHANGE_THRESHOLD:
+                obstruction_map[str(coord)] = {
+                    "x": coord[0], 
+                    "y": coord[1], 
+                    "dist": dist, 
+                    "delta": round(dist - baseline_grid[coord], 2),
+                    "type": "MOVED_OBJECT"
+                }
 
     # 5. Output the Obstruction Map
     # We print valid JSON so another program can read this output easily

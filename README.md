@@ -178,7 +178,7 @@ BAUDRATE="115200"             # A2M8 default
 Edit `Lidar_Data_Processor.py`:
 ```python
 MIN_DISTANCE = 100      # Minimum detection (mm)
-MAX_DISTANCE = 3000     # Maximum detection (mm)
+MAX_DISTANCE = 500     # Maximum detection (mm)
 MIN_QUALITY = 10        # Minimum scan quality
 ```
 

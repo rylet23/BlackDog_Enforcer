@@ -16,7 +16,7 @@ import argparse
 
 # Configuration
 MIN_DISTANCE = 100  # mm
-MAX_DISTANCE = 3000  # mm
+MAX_DISTANCE = 500  # mm
 MIN_QUALITY = 10
 
 # Map configuration

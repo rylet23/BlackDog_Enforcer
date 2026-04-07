@@ -167,7 +167,7 @@ class ObstructionHandler:
 
         # Wheels already turned -- just drive straight toward the object
         # Scale duration to distance: clamp between 0.5s (close) and 3.0s (far)
-        drive_duration = max(0.5, min(3.0, distance / 1000.0))
+        drive_duration = max(0.5, min(3.0, distance / 500.0))
         print(f"[DRIVING] Driving toward object for {drive_duration:.1f}s")
         self.car_controller.set_throttle(10)
         time.sleep(drive_duration)

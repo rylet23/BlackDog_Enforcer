@@ -63,6 +63,7 @@ class ObstructionHandler:
         # Step 3: Classify -- wheels stay turned during this
         is_real_obstruction = self.classify_with_cnn()
 
+        #If it ends up driving towards it consider adding to where if reverses back to its original point and then recenters the wheels
         # Step 4: Drive toward it if confirmed, otherwise re-center and resume
         if is_real_obstruction:
             self.state = ObstructionState.CONFIRMED

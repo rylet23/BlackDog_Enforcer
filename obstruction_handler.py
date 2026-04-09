@@ -72,10 +72,10 @@ class ObstructionHandler:
 
         # Skip objects behind the rover (> +/-90 degrees from forward)
         # These would require reversing which risks hitting walls
-        #raw_angle = math.degrees(math.atan2(y, x))
-        #if abs(raw_angle) > 90:
-            #print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f} degrees) - ignoring")
-            #return
+        raw_angle = math.degrees(math.atan2(y, x))
+        if abs(raw_angle) > 90:
+            print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f} degrees) - ignoring")
+            return
 
         self.current_obstruction = {
             'x': x,
@@ -126,7 +126,7 @@ class ObstructionHandler:
         # Negate to flip left/right since y positive = left in LIDAR coords
         steering_angle = max(-100, min(100, -angle_deg * (100 / 90)))
 
-        return -steering_angle
+        return steering_angle
 
     def steer_to_object(self, steering_angle):
         """

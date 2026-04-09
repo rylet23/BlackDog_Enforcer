@@ -81,6 +81,7 @@ class ObstructionHandler:
         Args:
             x: X position (mm, positive = forward)
             y: Y position (mm, positive = left)
+            y: Y position (mm, positive = left)
 
         Returns:
             steering_angle: -100 (full left) to 100 (full right)
@@ -89,7 +90,8 @@ class ObstructionHandler:
         angle_deg = math.degrees(angle_rad)
 
         # Map +/-90 degree forward arc to +/-100 steering range
-        steering_angle = max(-100, min(100, angle_deg * (100 / 90)))
+        # Negate to flip left/right since y positive = left in LIDAR coords
+        steering_angle = max(-100, min(100, -angle_deg * (100 / 90)))
 
         return steering_angle
 

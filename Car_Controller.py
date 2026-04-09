@@ -26,10 +26,12 @@ def set_throttle(percent):
         esc.ChangeDutyCycle(duty)
 
 def set_steering(angle):
-    """-100..100 => full left..full right"""
     angle = max(-100, min(100, angle))
-    duty = 7.5 + (angle / 200) * 5
-    steer.ChangeDutyCycle(duty)
+    if angle == 0:
+        steer.ChangeDutyCycle(0)  # completely stop signal = true neutral
+    else:
+        duty = 7.5 + (angle / 200) * 5
+        steer.ChangeDutyCycle(duty)
 
 def drive_forward(throttle_percent=25, duration=2.0):
     """Drive forward for specified duration"""

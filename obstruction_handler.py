@@ -42,10 +42,10 @@ class ObstructionHandler:
 
         # Skip objects behind the rover (> +/-90 degrees from forward)
         # These would require reversing which risks hitting walls
-        raw_angle = math.degrees(math.atan2(y, x))
-        if abs(raw_angle) > 90:
-            print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f} degrees) - ignoring")
-            return
+        #raw_angle = math.degrees(math.atan2(y, x))
+        #if abs(raw_angle) > 90:
+            #print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f} degrees) - ignoring")
+            #return
 
         self.current_obstruction = {
             'x': x,

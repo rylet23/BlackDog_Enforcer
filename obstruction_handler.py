@@ -29,7 +29,7 @@ class ObstructionHandler:
         self.state = None
         self.last_handled_obstruction = None
         self.last_handle_time = 0
-        self.debounce_threshold = 10.0  # seconds - longer debounce to prevent re-triggers
+        self.debounce_threshold = 5.0  # seconds - reduced to match 3s CNN + processing time
         self.distance_threshold = 300  # mm - larger threshold for "same object"
         self.is_processing = False  # Flag to indicate we're currently processing an obstruction
 
@@ -177,7 +177,7 @@ class ObstructionHandler:
                 cwd='/home/blackdog1/BlackDog_Enforcer',
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=3
             )
 
             is_animal = 'ANIMAL_DETECTED' in result.stdout or result.returncode == 0

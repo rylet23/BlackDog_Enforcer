@@ -18,10 +18,12 @@ steer.start(0)
 DRIVE_DURATION = 2.0  # seconds
 
 def set_throttle(percent):
-    """-100..100 => reverse..forward"""
     percent = max(-100, min(100, percent))
-    duty = 7.5 + (percent / 200) * 5
-    esc.ChangeDutyCycle(duty)
+    if percent == 0:
+        esc.ChangeDutyCycle(0)  # completely stop signal = true neutral
+    else:
+        duty = 7.5 + (percent / 200) * 5
+        esc.ChangeDutyCycle(duty)
 
 def set_steering(angle):
     """-100..100 => full left..full right"""

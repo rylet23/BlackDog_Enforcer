@@ -29,7 +29,7 @@ class ObstructionHandler:
         self.state = None
         self.last_handled_obstruction = None
         self.last_handle_time = 0
-        self.debounce_threshold = 4.0  # seconds - increased to prevent overlap
+        self.debounce_threshold = 10.0  # seconds - increased to prevent overlap
         self.distance_threshold = 200  # mm - larger threshold for "same object"
         self.is_processing = False  # Flag to indicate we're currently processing an obstruction
         self.camera_working = self.test_camera()
@@ -67,20 +67,12 @@ class ObstructionHandler:
             return False
 
     def is_same_obstruction(self, x, y, distance):
-        """
-        Check if this is the same obstruction we just handled.
-        Returns True if we should debounce (skip processing).
-        """
-
-        def is_same_obstruction(self, x, y, distance):
-            if self.is_processing:
-                return True
-
-            time_since_last = time.time() - self.last_handle_time
-            if time_since_last < self.debounce_threshold:
-                return True  # Flat cooldown — no position check
-
-            return False
+        if self.is_processing:
+            return True
+        time_since_last = time.time() - self.last_handle_time
+        if time_since_last < self.debounce_threshold:
+            return True  # block everything for full cooldown period
+        return False
 
     def handle_obstruction(self, x, y, distance, obs_type):
         """
@@ -195,7 +187,9 @@ class ObstructionHandler:
             bool: True if real obstruction, False if false positive
         """
         self.state = ObstructionState.CLASSIFYING
-        print("[CNN] Initiating classification...")
+        # print("[CNN] Initiating classification...")
+        print("[CNN] BYPASSED - treating as confirmed")
+        return True  # comment this out when ready to use real CNN
 
         # Check if camera is working before attempting classification
         if not self.camera_working:

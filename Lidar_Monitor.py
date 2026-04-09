@@ -117,20 +117,22 @@ def process_frame(points, baseline):
             # Determine the obstruction type (NEW_OBJECT or MOVED_OBJECT)
             grid_key = f"{int(c['centroid_x'] // 50) * 50},{int(c['centroid_y'] // 50) * 50}"
 
-            if grid_key not in baseline:
-                # New object in empty space
-                obstruction_handler.handle_obstruction(
-                    round(c['centroid_x'], 2), round(c['centroid_y'], 2),
-                    round(centroid_dist, 0),
-                    "NEW_OBJECT"
-                )
-            elif (baseline[grid_key] - centroid_dist) > CHANGE_THRESHOLD:
-                # Object significantly closer than baseline
-                obstruction_handler.handle_obstruction(
-                    round(c['centroid_x'], 2), round(c['centroid_y'], 2),
-                    round(centroid_dist, 0),
-                    "MOVED_OBJECT"
-                )
+            # Only call handler if it's not currently processing
+            if not obstruction_handler.is_processing:
+                if grid_key not in baseline:
+                    # New object in empty space
+                    obstruction_handler.handle_obstruction(
+                        round(c['centroid_x'], 2), round(c['centroid_y'], 2),
+                        round(centroid_dist, 0),
+                        "NEW_OBJECT"
+                    )
+                elif (baseline[grid_key] - centroid_dist) > CHANGE_THRESHOLD:
+                    # Object significantly closer than baseline
+                    obstruction_handler.handle_obstruction(
+                        round(c['centroid_x'], 2), round(c['centroid_y'], 2),
+                        round(centroid_dist, 0),
+                        "MOVED_OBJECT"
+                    )
 
 
 if __name__ == "__main__":

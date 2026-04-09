@@ -14,6 +14,7 @@ class ObstructionState(Enum):
     CONFIRMED = "confirmed"
     BYPASSED = "bypassed"
 
+
 class ObstructionHandler:
     def __init__(self, car_controller_module):
         """
@@ -25,6 +26,31 @@ class ObstructionHandler:
         self.car_controller = car_controller_module
         self.current_obstruction = None
         self.state = None
+        self.last_handled_obstruction = None
+        self.last_handle_time = 0
+        self.debounce_threshold = 2.0  # seconds - ignore same object within 2 seconds
+        self.distance_threshold = 200  # mm - if object moves more than this, treat as new
+
+    def is_same_obstruction(self, x, y, distance):
+        """
+        Check if this is the same obstruction we just handled.
+        Returns True if we should debounce (skip processing).
+        """
+        if self.last_handled_obstruction is None:
+            return False
+
+        time_since_last = time.time() - self.last_handle_time
+        if time_since_last < self.debounce_threshold:
+            # Check if position is roughly the same
+            dx = x - self.last_handled_obstruction['x']
+            dy = y - self.last_handled_obstruction['y']
+            distance_moved = math.sqrt(dx ** 2 + dy ** 2)
+
+            # If object hasn't moved much, it's the same obstruction
+            if distance_moved < self.distance_threshold:
+                return True
+
+        return False
 
     def handle_obstruction(self, x, y, distance, obs_type):
         """
@@ -37,6 +63,10 @@ class ObstructionHandler:
             distance: Distance from LIDAR (mm)
             obs_type: "NEW_OBJECT" or "MOVED_OBJECT"
         """
+        # Skip if we're already handling the same obstruction
+        if self.is_same_obstruction(x, y, distance):
+            return
+
         # Step 1: Calculate steering angle to face object
         steering_angle = self.calculate_steering_angle(x, y)
 
@@ -63,7 +93,6 @@ class ObstructionHandler:
         # Step 3: Classify -- wheels stay turned during this
         is_real_obstruction = self.classify_with_cnn()
 
-        #If it ends up driving towards it consider adding to where if reverses back to its original point and then recenters the wheels
         # Step 4: Drive toward it if confirmed, otherwise re-center and resume
         if is_real_obstruction:
             self.state = ObstructionState.CONFIRMED
@@ -73,6 +102,10 @@ class ObstructionHandler:
             self.state = ObstructionState.BYPASSED
             self.car_controller.set_steering(0)  # Re-center if false positive
             print("[RESULT] False positive - resuming normal operation")
+
+        # Record that we handled this obstruction
+        self.last_handled_obstruction = self.current_obstruction
+        self.last_handle_time = time.time()
 
     def calculate_steering_angle(self, x, y):
         """
@@ -141,11 +174,11 @@ class ObstructionHandler:
             return is_animal
 
         except subprocess.TimeoutExpired:
-            print("[CNN] Classification timeout - treating as real threat")
-            return True
+            print("[CNN] Classification timeout - treating as UNCLEAR (defaulting to false)")
+            return False  # Changed: timeout = uncertain, not threat
         except Exception as e:
-            print(f"[CNN] Error during classification: {e} - treating as real threat")
-            return True
+            print(f"[CNN] Error during classification: {e} - treating as false positive")
+            return False  # Changed: errors = false positive, safer default
 
     def extract_confidence(self, cnn_output):
         """Extract confidence score from CNN output"""
@@ -170,7 +203,7 @@ class ObstructionHandler:
 
         # Wheels already turned -- just drive straight toward the object
         # Scale duration to distance: clamp between 0.5s (close) and 3.0s (far)
-        drive_duration = max(0.5, min(3.0, distance / 500.0))
+        drive_duration = max(0.5, min(3.0, distance / 200.0))#Change back to 500
         print(f"[DRIVING] Driving toward object for {drive_duration:.1f}s")
         self.car_controller.set_throttle(10)
         time.sleep(drive_duration)

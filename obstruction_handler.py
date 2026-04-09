@@ -29,8 +29,8 @@ class ObstructionHandler:
         self.state = None
         self.last_handled_obstruction = None
         self.last_handle_time = 0
-        self.debounce_threshold = 5.0  # seconds - ignore new detections while processing
-        self.distance_threshold = 200  # mm - if object moves more than this, treat as new
+        self.debounce_threshold = 10.0  # seconds - longer debounce to prevent re-triggers
+        self.distance_threshold = 300  # mm - larger threshold for "same object"
         self.is_processing = False  # Flag to indicate we're currently processing an obstruction
 
     def is_same_obstruction(self, x, y, distance):
@@ -136,7 +136,8 @@ class ObstructionHandler:
         angle_deg = math.degrees(angle_rad)
 
         # Map +/-90 degree forward arc to +/-100 steering range
-        steering_angle = max(-100, min(100, angle_deg * (100 / 90)))
+        # Negate because y positive = left, but we want negative angle for left
+        steering_angle = max(-100, min(100, -angle_deg * (100 / 90)))
 
         return steering_angle
 

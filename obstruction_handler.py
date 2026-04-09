@@ -29,9 +29,41 @@ class ObstructionHandler:
         self.state = None
         self.last_handled_obstruction = None
         self.last_handle_time = 0
-        self.debounce_threshold = 5.0  # seconds - reduced to match 3s CNN + processing time
+        self.debounce_threshold = 8.0  # seconds - increased to prevent overlap
         self.distance_threshold = 300  # mm - larger threshold for "same object"
         self.is_processing = False  # Flag to indicate we're currently processing an obstruction
+        self.camera_working = self.test_camera()
+
+    def test_camera(self):
+        """
+        Test if the camera is working by trying to capture a frame.
+        Returns True if camera is accessible, False otherwise.
+        """
+        print("[CAMERA TEST] Checking camera availability...")
+        try:
+            import cv2
+            cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+            if not cap.isOpened():
+                print("[CAMERA TEST] ERROR: Camera failed to open (cap.isOpened() returned False)")
+                return False
+
+            # Try to read a frame
+            ret, frame = cap.read()
+            cap.release()
+
+            if not ret:
+                print("[CAMERA TEST] ERROR: Failed to read frame from camera")
+                return False
+
+            print("[CAMERA TEST] SUCCESS: Camera is working and accessible")
+            return True
+
+        except ImportError:
+            print("[CAMERA TEST] ERROR: OpenCV (cv2) not installed")
+            return False
+        except Exception as e:
+            print(f"[CAMERA TEST] ERROR: {e}")
+            return False
 
     def is_same_obstruction(self, x, y, distance):
         """
@@ -117,6 +149,9 @@ class ObstructionHandler:
             self.last_handled_obstruction = self.current_obstruction
             self.last_handle_time = time.time()
 
+            # Wait a moment to let wheels settle before allowing new detections
+            time.sleep(1.0)
+
         finally:
             # Always mark processing as complete when done
             self.is_processing = False
@@ -168,6 +203,10 @@ class ObstructionHandler:
         """
         self.state = ObstructionState.CLASSIFYING
         print("[CNN] Initiating classification...")
+
+        # Check if camera is working before attempting classification
+        if not self.camera_working:
+            print("[CNN] WARNING: Camera test failed at startup - classification may not work")
 
         try:
             result = subprocess.run(
@@ -230,5 +269,6 @@ class ObstructionHandler:
     def get_status(self):
         return {
             'state': self.state,
-            'current_obstruction': self.current_obstruction
+            'current_obstruction': self.current_obstruction,
+            'camera_working': self.camera_working
         }

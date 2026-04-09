@@ -182,6 +182,7 @@ class ObstructionHandler:
         # Zero first so new angle is always applied from a known center position
         # self.car_controller.set_steering(0) #Think this is causing the wheel twitching problem
         # time.sleep(0.3)
+        self.car_controller.set_throttle(0)  # explicitly kill throttle before steering
         self.car_controller.set_steering(steering_angle)
         time.sleep(0.5)
 

@@ -99,35 +99,34 @@ def process_frame(points, baseline):
             # Calculate Bounding Box
             xs = [p['x'] for p in c['points']]
             ys = [p['y'] for p in c['points']]
+            width = round(max(xs) - min(xs), 2)
+            height = round(max(ys) - min(ys), 2)
+
+            # Filter out tiny noise clusters (boundary artifacts)
+            if width < 20 and height < 40:
+                continue
 
             obj_payload = {
                 'x': round(c['centroid_x'], 2),
                 'y': round(c['centroid_y'], 2),
-                'w': round(max(xs) - min(xs), 2),
-                'h': round(max(ys) - min(ys), 2),
+                'w': width,
+                'h': height,
                 'count': len(c['points']),
                 'type': "DETECTED_ISLAND"
             }
             trigger_cnn_model(obj_payload)
 
-            # Call handle_obstruction ONCE per cluster using the centroid
-            # Calculate distance from centroid
             centroid_dist = math.sqrt(c['centroid_x'] ** 2 + c['centroid_y'] ** 2)
-
-            # Determine the obstruction type (NEW_OBJECT or MOVED_OBJECT)
             grid_key = f"{int(c['centroid_x'] // 50) * 50},{int(c['centroid_y'] // 50) * 50}"
 
-            # Only call handler if it's not currently processing
             if not obstruction_handler.is_processing:
                 if grid_key not in baseline:
-                    # New object in empty space
                     obstruction_handler.handle_obstruction(
                         round(c['centroid_x'], 2), round(c['centroid_y'], 2),
                         round(centroid_dist, 0),
                         "NEW_OBJECT"
                     )
                 elif (baseline[grid_key] - centroid_dist) > CHANGE_THRESHOLD:
-                    # Object significantly closer than baseline
                     obstruction_handler.handle_obstruction(
                         round(c['centroid_x'], 2), round(c['centroid_y'], 2),
                         round(centroid_dist, 0),

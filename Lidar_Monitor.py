@@ -69,7 +69,7 @@ def monitor_stream(baseline):
         last_theta = theta
 
         if qual >= MIN_QUALITY:
-            if not (100 <= dist <= 500): 
+            if not (100 <= dist <= 500):
                 continue
             rad = math.radians(theta)
             x = dist * math.cos(rad)
@@ -110,20 +110,27 @@ def process_frame(points, baseline):
             }
             trigger_cnn_model(obj_payload)
 
-            # Determine obstruction type per point and notify handler
-            # FIX: use p['dist'] (not p['distance']) and p['grid_key'] from the stored point data
-            for p in c['points']:
-                grid_key = p['grid_key']
-                if grid_key not in baseline:
-                    # New object in empty space
-                    obstruction_handler.handle_obstruction(
-                        round(p['x'], 2), round(p['y'], 2), p['dist'], "NEW_OBJECT"
-                    )
-                elif (baseline[grid_key] - p['dist']) > CHANGE_THRESHOLD:
-                    # Object significantly closer than baseline
-                    obstruction_handler.handle_obstruction(
-                        round(p['x'], 2), round(p['y'], 2), p['dist'], "MOVED_OBJECT"
-                    )
+            # Call handle_obstruction ONCE per cluster using the centroid
+            # Calculate distance from centroid
+            centroid_dist = math.sqrt(c['centroid_x'] ** 2 + c['centroid_y'] ** 2)
+
+            # Determine the obstruction type (NEW_OBJECT or MOVED_OBJECT)
+            grid_key = f"{int(c['centroid_x'] // 50) * 50},{int(c['centroid_y'] // 50) * 50}"
+
+            if grid_key not in baseline:
+                # New object in empty space
+                obstruction_handler.handle_obstruction(
+                    round(c['centroid_x'], 2), round(c['centroid_y'], 2),
+                    round(centroid_dist, 0),
+                    "NEW_OBJECT"
+                )
+            elif (baseline[grid_key] - centroid_dist) > CHANGE_THRESHOLD:
+                # Object significantly closer than baseline
+                obstruction_handler.handle_obstruction(
+                    round(c['centroid_x'], 2), round(c['centroid_y'], 2),
+                    round(centroid_dist, 0),
+                    "MOVED_OBJECT"
+                )
 
 
 if __name__ == "__main__":

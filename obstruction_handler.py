@@ -29,10 +29,11 @@ class ObstructionHandler:
         self.state = None
         self.last_handled_obstruction = None
         self.last_handle_time = 0
-        self.debounce_threshold = 8.0  # seconds - increased to prevent overlap
-        self.distance_threshold = 300  # mm - larger threshold for "same object"
+        self.debounce_threshold = 4.0  # seconds - increased to prevent overlap
+        self.distance_threshold = 200  # mm - larger threshold for "same object"
         self.is_processing = False  # Flag to indicate we're currently processing an obstruction
         self.camera_working = self.test_camera()
+        self.car_controller.arm_esc()
 
     def test_camera(self):
         """
@@ -188,8 +189,8 @@ class ObstructionHandler:
         print(f"[STEERING] Turning to angle: {steering_angle:.1f} degrees")
 
         # Zero first so new angle is always applied from a known center position
-        self.car_controller.set_steering(0)
-        time.sleep(0.3)
+        # self.car_controller.set_steering(0) #Think this is causing the wheel twitching problem
+        # time.sleep(0.3)
         self.car_controller.set_steering(steering_angle)
         time.sleep(0.5)
 

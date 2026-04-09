@@ -71,25 +71,16 @@ class ObstructionHandler:
         Check if this is the same obstruction we just handled.
         Returns True if we should debounce (skip processing).
         """
-        # If we're currently processing an obstruction, skip all new detections
-        if self.is_processing:
-            return True
 
-        if self.last_handled_obstruction is None:
-            return False
-
-        time_since_last = time.time() - self.last_handle_time
-        if time_since_last < self.debounce_threshold:
-            # Check if position is roughly the same
-            dx = x - self.last_handled_obstruction['x']
-            dy = y - self.last_handled_obstruction['y']
-            distance_moved = math.sqrt(dx ** 2 + dy ** 2)
-
-            # If object hasn't moved much, it's the same obstruction
-            if distance_moved < self.distance_threshold:
+        def is_same_obstruction(self, x, y, distance):
+            if self.is_processing:
                 return True
 
-        return False
+            time_since_last = time.time() - self.last_handle_time
+            if time_since_last < self.debounce_threshold:
+                return True  # Flat cooldown — no position check
+
+            return False
 
     def handle_obstruction(self, x, y, distance, obs_type):
         """
@@ -116,9 +107,9 @@ class ObstructionHandler:
             # Skip objects behind the rover (> +/-90 degrees from forward)
             # These would require reversing which risks hitting walls
             raw_angle = math.degrees(math.atan2(y, x))
-            if abs(raw_angle) > 90:
-                print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f} degrees) - ignoring")
-                return
+            # if abs(raw_angle) > 90:
+            #     print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f} degrees) - ignoring")
+            #     return
 
             self.current_obstruction = {
                 'x': x,
@@ -217,7 +208,7 @@ class ObstructionHandler:
                 cwd='/home/blackdog1/BlackDog_Enforcer',
                 capture_output=True,
                 text=True,
-                timeout=3
+                timeout=15
             )
 
             is_animal = 'ANIMAL_DETECTED' in result.stdout or result.returncode == 0

@@ -7,6 +7,7 @@ import time
 import sys
 from enum import Enum
 
+
 class ObstructionState(Enum):
     DETECTED = "detected"
     STEERING_TO_OBJECT = "steering_to_object"
@@ -28,14 +29,19 @@ class ObstructionHandler:
         self.state = None
         self.last_handled_obstruction = None
         self.last_handle_time = 0
-        self.debounce_threshold = 2.0  # seconds - ignore same object within 2 seconds
+        self.debounce_threshold = 5.0  # seconds - ignore new detections while processing
         self.distance_threshold = 200  # mm - if object moves more than this, treat as new
+        self.is_processing = False  # Flag to indicate we're currently processing an obstruction
 
     def is_same_obstruction(self, x, y, distance):
         """
         Check if this is the same obstruction we just handled.
         Returns True if we should debounce (skip processing).
         """
+        # If we're currently processing an obstruction, skip all new detections
+        if self.is_processing:
+            return True
+
         if self.last_handled_obstruction is None:
             return False
 
@@ -67,45 +73,53 @@ class ObstructionHandler:
         if self.is_same_obstruction(x, y, distance):
             return
 
-        # Step 1: Calculate steering angle to face object
-        steering_angle = self.calculate_steering_angle(x, y)
+        # Mark that we're starting to process this obstruction
+        self.is_processing = True
 
-        # Skip objects behind the rover (> +/-90 degrees from forward)
-        # These would require reversing which risks hitting walls
-        raw_angle = math.degrees(math.atan2(y, x))
-        if abs(raw_angle) > 90:
-            print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f} degrees) - ignoring")
-            return
+        try:
+            # Step 1: Calculate steering angle to face object
+            steering_angle = self.calculate_steering_angle(x, y)
 
-        self.current_obstruction = {
-            'x': x,
-            'y': y,
-            'distance': distance,
-            'type': obs_type,
-            'steering_angle': steering_angle
-        }
-        self.state = ObstructionState.DETECTED
-        print(f"\n[OBSTRUCTION DETECTED] Type: {obs_type} | Pos: ({x}, {y}) | Distance: {distance}mm")
+            # Skip objects behind the rover (> +/-90 degrees from forward)
+            # These would require reversing which risks hitting walls
+            raw_angle = math.degrees(math.atan2(y, x))
+            if abs(raw_angle) > 90:
+                print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f} degrees) - ignoring")
+                return
 
-        # Step 2: Turn wheels to face the object
-        self.steer_to_object(steering_angle)
+            self.current_obstruction = {
+                'x': x,
+                'y': y,
+                'distance': distance,
+                'type': obs_type,
+                'steering_angle': steering_angle
+            }
+            self.state = ObstructionState.DETECTED
+            print(f"\n[OBSTRUCTION DETECTED] Type: {obs_type} | Pos: ({x}, {y}) | Distance: {distance}mm")
 
-        # Step 3: Classify -- wheels stay turned during this
-        is_real_obstruction = self.classify_with_cnn()
+            # Step 2: Turn wheels to face the object
+            self.steer_to_object(steering_angle)
 
-        # Step 4: Drive toward it if confirmed, otherwise re-center and resume
-        if is_real_obstruction:
-            self.state = ObstructionState.CONFIRMED
-            print("[RESULT] Real obstruction confirmed - executing deterrence")
-            self.execute_deterrence(distance)
-        else:
-            self.state = ObstructionState.BYPASSED
-            self.car_controller.set_steering(0)  # Re-center if false positive
-            print("[RESULT] False positive - resuming normal operation")
+            # Step 3: Classify -- wheels stay turned during this
+            is_real_obstruction = self.classify_with_cnn()
 
-        # Record that we handled this obstruction
-        self.last_handled_obstruction = self.current_obstruction
-        self.last_handle_time = time.time()
+            # Step 4: Drive toward it if confirmed, otherwise re-center and resume
+            if is_real_obstruction:
+                self.state = ObstructionState.CONFIRMED
+                print("[RESULT] Real obstruction confirmed - executing deterrence")
+                self.execute_deterrence(distance)
+            else:
+                self.state = ObstructionState.BYPASSED
+                self.car_controller.set_steering(0)  # Re-center if false positive
+                print("[RESULT] False positive - resuming normal operation")
+
+            # Record that we handled this obstruction
+            self.last_handled_obstruction = self.current_obstruction
+            self.last_handle_time = time.time()
+
+        finally:
+            # Always mark processing as complete when done
+            self.is_processing = False
 
     def calculate_steering_angle(self, x, y):
         """
@@ -113,7 +127,6 @@ class ObstructionHandler:
 
         Args:
             x: X position (mm, positive = forward)
-            y: Y position (mm, positive = left)
             y: Y position (mm, positive = left)
 
         Returns:
@@ -123,8 +136,7 @@ class ObstructionHandler:
         angle_deg = math.degrees(angle_rad)
 
         # Map +/-90 degree forward arc to +/-100 steering range
-        # Negate to flip left/right since y positive = left in LIDAR coords
-        steering_angle = max(-100, min(100, -angle_deg * (100 / 90)))
+        steering_angle = max(-100, min(100, angle_deg * (100 / 90)))
 
         return steering_angle
 
@@ -175,10 +187,10 @@ class ObstructionHandler:
 
         except subprocess.TimeoutExpired:
             print("[CNN] Classification timeout - treating as UNCLEAR (defaulting to false)")
-            return False  # Changed: timeout = uncertain, not threat
+            return False
         except Exception as e:
             print(f"[CNN] Error during classification: {e} - treating as false positive")
-            return False  # Changed: errors = false positive, safer default
+            return False
 
     def extract_confidence(self, cnn_output):
         """Extract confidence score from CNN output"""
@@ -203,7 +215,7 @@ class ObstructionHandler:
 
         # Wheels already turned -- just drive straight toward the object
         # Scale duration to distance: clamp between 0.5s (close) and 3.0s (far)
-        drive_duration = max(0.5, min(3.0, distance / 200.0))#Change back to 500
+        drive_duration = max(0.5, min(3.0, distance / 200.0))
         print(f"[DRIVING] Driving toward object for {drive_duration:.1f}s")
         self.car_controller.set_throttle(10)
         time.sleep(drive_duration)

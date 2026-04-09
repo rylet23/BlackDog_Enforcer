@@ -38,7 +38,7 @@ try:
 
     print("Forward 25%, turn right")
     set_throttle(10)
-    set_steering(50)
+    set_steering(-50)
     time.sleep(2)
 
     print("Straight ahead")
@@ -46,7 +46,7 @@ try:
     time.sleep(1)
 
     print("Turn left")
-    set_steering(-50)
+    set_steering(50)
     time.sleep(2)
 
     print("Stop")

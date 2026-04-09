@@ -93,7 +93,7 @@ class ObstructionHandler:
         # Negate to flip left/right since y positive = left in LIDAR coords
         steering_angle = max(-100, min(100, -angle_deg * (100 / 90)))
 
-        return steering_angle
+        return -steering_angle
 
     def steer_to_object(self, steering_angle):
         """

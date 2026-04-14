@@ -4,7 +4,7 @@ import json
 import math
 import Car_Controller
 from obstruction_handler import ObstructionHandler
-
+import NoiseGen
 # --- Configuration ---
 MIN_QUALITY = 10
 CHANGE_THRESHOLD = 150
@@ -18,10 +18,11 @@ def trigger_cnn_model(object_data):
     Triggers once per clustered object.
     object_data contains: avg_x, avg_y, width, height, point_count
     """
+    
     print(f"!!! OBJECT DETECTED: {object_data['type']} !!!")
     print(f"Location: ({object_data['x']}, {object_data['y']}) | Size: {object_data['w']}x{object_data['h']}mm")
     # Your CNN model logic goes here
-
+    NoiseGen(1);
 
 # Initialize obstruction handler with car controller
 obstruction_handler = ObstructionHandler(Car_Controller)

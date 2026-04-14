@@ -5,7 +5,9 @@ from torch import nn, optim
 import matplotlib.pyplot as plt
 from pathlib import Path
 from PIL import Image
+from .. import NoiseGen
 
+noise_controller = NoiseGen.NoiseManager()
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
@@ -99,8 +101,13 @@ def predict_image(image_path):
     with torch.no_grad():
         model.eval()
         output = model(image)
+        # prediction is already a 1.0 or 0.0 float here
         prediction = (output.squeeze() > 0.5).float()
     
-    return 'Animal' if prediction.item() == 1 else 'Not Animal'
+    # Convert prediction to int (1 or 0) and pass it to NoiseGen
+    noise_state = int(prediction.item())
+    noise_controller.set_state(noise_state)
+    
+    return 'Animal' if noise_state == 1 else 'Not Animal'
 
 #print(predict_image('/home/luccad/BlackDog/modelImages/animals/img_001.jpg'))

@@ -232,33 +232,34 @@ class ObstructionHandler:
     def execute_deterrence(self, distance):
         """
         Drive toward the detected obstruction to deter it.
-        Wheels are already facing the object from steer_to_object()
-        so just drive forward, then stop and re-center.
+        Wheels are already facing the object from steer_to_object().
+
+        Phase 1: Drive with wheels turned for 0.5s to redirect the rover.
+        Phase 2: Straighten wheels and drive the remaining duration straight.
 
         Args:
             distance: Distance to obstruction in mm
         """
         print("[DRIVING] Executing deterrence maneuver")
 
-        # --- PHASE 1: Initial turn (0.5 seconds) ---
-        print(f"[DRIVING] Phase 1: Turning toward object for 0.5s")
+        TURN_DURATION = 0.5  # seconds to drive with wheels turned to aim the rover
+
+        # Total drive time scaled to distance, clamped between 0.5s and 3.0s
+        total_duration = max(0.5, min(3.0, distance / 1000.0))
+        straight_duration = max(0.0, total_duration - TURN_DURATION)
+
+        # Phase 1: Drive with wheels already turned to redirect rover toward object
+        print(f"[DRIVING] Phase 1 - Turning toward object for {TURN_DURATION:.1f}s")
         self.car_controller.set_throttle(10)
-        time.sleep(0.5)
+        time.sleep(TURN_DURATION)
 
-        # --- PHASE 2: Straighten wheels and drive straight ---
-        self.car_controller.set_steering(0)  # Center the wheels
-        print(f"[DRIVING] Phase 2: Driving straight toward object")
-        
-        # Calculate remaining drive time based on distance
-        # Reduce by 0.5s since we already drove for 0.5s during turn
-        remaining_distance = distance * 0.8  # Account for distance covered during turn
-        remaining_drive_duration = max(0.3, (remaining_distance / 1000.0) - 0.5)
-        remaining_drive_duration = min(3.0, remaining_drive_duration)
-        
-        print(f"[DRIVING] Driving straight for {remaining_drive_duration:.1f}s")
-        time.sleep(remaining_drive_duration)
+        # Phase 2: Straighten wheels and drive the remaining distance
+        if straight_duration > 0:
+            print(f"[DRIVING] Phase 2 - Driving straight for {straight_duration:.1f}s")
+            self.car_controller.set_steering(0)
+            time.sleep(straight_duration)
 
-        # Stop everything
+        # Stop and re-center
         self.car_controller.set_throttle(0)
         self.car_controller.set_steering(0)
 

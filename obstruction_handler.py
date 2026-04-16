@@ -232,11 +232,10 @@ class ObstructionHandler:
     def execute_deterrence(self, distance):
         """
         Drive toward the detected obstruction to deter it.
-        Wheels are already facing the object from steer_to_object().
-
-        Phase 1: Drive with wheels turned for 0.5s to redirect the rover.
-        Phase 2: STOP briefly so the servo can physically recenter against ground friction.
-        Phase 3: Drive straight for the remaining duration.
+        Three-phase approach:
+        Phase 1: Drive with wheels turned (0.5s)
+        Phase 2: Gradually recenter wheels while driving (0.3s)
+        Phase 3: Drive straight to reach destination
 
         Args:
             distance: Distance to obstruction in mm
@@ -246,30 +245,31 @@ class ObstructionHandler:
         TURN_DURATION = 0.5  # seconds driving turned
         RECENTER_DURATION = 0.3  # seconds to smoothly recenter wheels while moving
 
-        # Get current steering angle (set in steer_to_object)
+        # Get current steering angle
         current_steering = self.current_obstruction['steering_angle']
 
         # Phase 1: Drive with wheels fully turned
         print(f"[DRIVING] Phase 1 - Driving turned at {current_steering:.1f}° for {TURN_DURATION:.1f}s")
+        self.car_controller.set_steering(current_steering)  # RE-APPLY the steering angle
         self.car_controller.set_throttle(10)
         time.sleep(TURN_DURATION)
 
-        # Phase 2: Gradually recenter wheels WHILE driving (smooth transition)
+        # Phase 2: Gradually recenter wheels WHILE driving
         print(f"[DRIVING] Phase 2 - Recentering wheels over {RECENTER_DURATION:.1f}s")
         steps = 5
         for i in range(steps):
             # Gradually reduce steering from current angle to 0
-            progress = (i + 1) / steps  # 0.2, 0.4, 0.6, 0.8, 1.0
+            progress = (i + 1) / steps
             steering_angle = current_steering * (1.0 - progress)
             self.car_controller.set_steering(steering_angle)
             time.sleep(RECENTER_DURATION / steps)
+            # Throttle stays at 10 during this phase
 
         # Ensure wheels are fully centered
         self.car_controller.set_steering(0)
 
-        # Phase 3: Calculate and drive straight to destination
-        # Use distance-based duration: more distance = longer straight drive
-        straight_duration = (distance / 500.0) * 0.8  # 0.8 multiplier for 80% scaling
+        # Phase 3: Drive straight to destination
+        straight_duration = (distance / 500.0) * 0.8
         straight_duration = max(0.5, min(5.0, straight_duration))
 
         print(f"[DRIVING] Phase 3 - Driving straight for {straight_duration:.2f}s")

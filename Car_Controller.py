@@ -27,11 +27,11 @@ def set_throttle(percent):
 
 def set_steering(angle):
     angle = max(-100, min(100, angle))
-    if angle == 0:
-        steer.ChangeDutyCycle(0)  # completely stop signal = true neutral
-    else:
-        duty = 7.5 + (angle / 200) * 5
-        steer.ChangeDutyCycle(duty)
+    # Always send an active PWM signal so the servo physically moves.
+    # duty=7.5 at angle=0 is the servo center pulse (1.5ms @ 50Hz).
+    # Setting duty=0 (no signal) leaves the servo limp at its last position.
+    duty = 7.5 + (angle / 200) * 5
+    steer.ChangeDutyCycle(duty)
 
 def drive_forward(throttle_percent=25, duration=2.0):
     """Drive forward for specified duration"""

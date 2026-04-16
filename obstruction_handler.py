@@ -240,14 +240,25 @@ class ObstructionHandler:
         """
         print("[DRIVING] Executing deterrence maneuver")
 
-        # Wheels already turned -- just drive straight toward the object
-        # Scale duration to distance: clamp between 0.5s (close) and 3.0s (far)
-        drive_duration = max(0.5, min(3.0, distance / 1000.0))
-        print(f"[DRIVING] Driving toward object for {drive_duration:.1f}s")
+        # --- PHASE 1: Initial turn (0.5 seconds) ---
+        print(f"[DRIVING] Phase 1: Turning toward object for 0.5s")
         self.car_controller.set_throttle(10)
-        time.sleep(drive_duration)
+        time.sleep(0.5)
 
-        # Stop and re-center steering
+        # --- PHASE 2: Straighten wheels and drive straight ---
+        self.car_controller.set_steering(0)  # Center the wheels
+        print(f"[DRIVING] Phase 2: Driving straight toward object")
+        
+        # Calculate remaining drive time based on distance
+        # Reduce by 0.5s since we already drove for 0.5s during turn
+        remaining_distance = distance * 0.8  # Account for distance covered during turn
+        remaining_drive_duration = max(0.3, (remaining_distance / 1000.0) - 0.5)
+        remaining_drive_duration = min(3.0, remaining_drive_duration)
+        
+        print(f"[DRIVING] Driving straight for {remaining_drive_duration:.1f}s")
+        time.sleep(remaining_drive_duration)
+
+        # Stop everything
         self.car_controller.set_throttle(0)
         self.car_controller.set_steering(0)
 

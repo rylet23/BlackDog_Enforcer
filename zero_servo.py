@@ -20,8 +20,6 @@ def set_steering(angle):
 try:
     print("Centering steering servo to dead center (0°)...")
     set_steering(0)
-    print("✓ Steering servo centered!")
-    print("Holding for 2 seconds...")
     time.sleep(2)
     
 finally:

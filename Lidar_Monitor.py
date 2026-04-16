@@ -69,7 +69,7 @@ def monitor_stream(baseline):
         last_theta = theta
 
         if qual >= MIN_QUALITY:
-            if not (100 <= dist <= 500):
+            if not (100 <= dist <= 2000):
                 continue
             rad = math.radians(theta)
             x = dist * math.cos(rad)

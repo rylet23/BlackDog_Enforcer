@@ -247,7 +247,7 @@ class ObstructionHandler:
         SETTLE_DURATION = 0.3  # seconds stopped — lets servo win against ground friction
 
         # Total drive time scaled to distance, clamped 0.5s–3.0s
-        total_duration = max(0.5, min(3.0, distance / 500.0))
+        total_duration = max(0.5, min(3.0, distance / 750.0))
         straight_duration = max(0.0, total_duration - TURN_DURATION)
 
         # Phase 1: Drive with wheels turned to aim the rover at the target

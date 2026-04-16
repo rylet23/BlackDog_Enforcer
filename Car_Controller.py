@@ -22,7 +22,7 @@ def set_throttle(percent):
     if percent == 0:
         esc.ChangeDutyCycle(0)  # completely stop signal = true neutral
     else:
-        duty = 7.5 + (percent / 250) * 5
+        duty = 7.5 + (percent / 200) * 5
         esc.ChangeDutyCycle(duty)
 
 def set_steering(angle):

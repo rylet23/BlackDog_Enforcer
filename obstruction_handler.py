@@ -230,36 +230,30 @@ class ObstructionHandler:
         return 0.0
 
     def execute_deterrence(self, distance):
-        """
-        Drive toward the detected obstruction to deter it.
-        Simple two-phase approach without loops.
-
-        Args:
-            distance: Distance to obstruction in mm
-        """
         print("[DRIVING] Executing deterrence maneuver")
-
         current_steering = self.current_obstruction['steering_angle']
 
-        # Phase 1: Drive with wheels turned for initial redirection
-        print(f"[DRIVING] Phase 1 - Driving turned at {current_steering:.1f}° for 0.5s")
+        # Calculate total drive time upfront
+        total_drive_time = (distance / 500.0) * 0.8
+        total_drive_time = max(1.0, min(5.0, total_drive_time))
+        
+        # Phase 1: Turn and drive (0.5s of the total)
+        print(f"[DRIVING] Phase 1 - Driving turned for 0.5s")
         self.car_controller.set_steering(current_steering)
         self.car_controller.set_throttle(10)
         time.sleep(0.5)
 
-        # Phase 2: Straighten and drive straight
-        print(f"[DRIVING] Phase 2 - Straightening wheels and driving straight")
+        # Phase 2: Straighten wheels (still driving!)
+        print(f"[DRIVING] Phase 2 - Straightening wheels")
         self.car_controller.set_steering(0)
-        # Keep throttle at 10, don't stop
-        time.sleep(0.2)  # Brief moment for servo to center
+        time.sleep(0.2)
 
-        # Phase 3: Continue driving straight to destination
-        straight_duration = (distance / 500.0) * 0.8
-        straight_duration = max(0.5, min(5.0, straight_duration))
-
-        print(f"[DRIVING] Phase 3 - Continuing straight for {straight_duration:.2f}s")
-        # Throttle already at 10, steering already at 0
-        time.sleep(straight_duration)
+        # Phase 3: Continue driving for remaining time
+        remaining_time = total_drive_time - 0.5 - 0.2  # Subtract Phase 1 & 2
+        remaining_time = max(0.3, remaining_time)
+        
+        print(f"[DRIVING] Phase 3 - Driving straight for {remaining_time:.2f}s")
+        time.sleep(remaining_time)
 
         # Full stop
         self.car_controller.set_throttle(0)

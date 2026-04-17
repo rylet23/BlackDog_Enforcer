@@ -234,7 +234,7 @@ class ObstructionHandler:
         current_steering = self.current_obstruction['steering_angle']
 
         # Calculate total drive time upfront
-        total_drive_time = (distance / 850.0) * 0.8
+        total_drive_time = (distance / 750.0) * 0.8
         total_drive_time = max(1.0, min(5.0, total_drive_time))
         
         # Phase 1: Turn and drive (0.5s of the total)

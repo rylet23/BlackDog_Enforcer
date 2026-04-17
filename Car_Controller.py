@@ -25,7 +25,7 @@ def set_throttle(percent):
         duty = 7.5 + (percent / 200) * 5  # Keep original 250
         esc.ChangeDutyCycle(duty)
 
-    def set_steering(angle):
+def set_steering(angle):
         angle = max(-100, min(100, angle))
         if angle == 0:
             steer.ChangeDutyCycle(7.5)  # Changed from 0 to 7.5 (active center signal)

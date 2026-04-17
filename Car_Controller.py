@@ -16,7 +16,7 @@ esc.start(0)
 steer.start(0)
 
 DRIVE_DURATION = 2.0  # seconds
-STEERING_TRIM = 0.0  # Tweak this! E.g., +0.2 if it drifts right, -0.2 if it drifts left
+STEERING_TRIM = -0.2  # Tweak this! E.g., +0.2 if it drifts right, -0.2 if it drifts left
 
     # Global to track last steering direction
 last_steering_angle = 0

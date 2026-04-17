@@ -142,23 +142,33 @@ class ObstructionHandler:
 
     def calculate_steering_angle(self, x, y):
         """
-        Convert obstruction position to steering angle (-100 to 100).
-
-        Args:
-            x: X position (mm, positive = forward)
-            y: Y position (mm, positive = left)
-
-        Returns:
-            steering_angle: -100 (full left) to 100 (full right)
+        Convert obstruction position to an Ackermann steering arc angle.
         """
-        angle_rad = math.atan2(y, x)
-        angle_deg = math.degrees(angle_rad)
+        # --- CRITICAL: MEASURE YOUR CAR ---
+        # L is your car's wheelbase in mm (distance from front axle to rear axle).
+        L = 250.0
 
-        # Map +/-90 degree forward arc to +/-100 steering range
-        # Negate because y positive = left, but we want negative angle for left
-        steering_angle = max(-100, min(100, -angle_deg * (100 / 90)))
+        # Avoid division by zero if object is perfectly straight ahead
+        if y == 0:
+            return 0.0
 
-        return steering_angle
+        # 1. Calculate required turning radius (R) to hit (x,y)
+        R = (x ** 2 + y ** 2) / (2 * y)
+
+        # 2. Calculate ideal physical steering angle in radians
+        steering_angle_rad = math.atan(L / R)
+        steering_angle_deg = math.degrees(steering_angle_rad)
+
+        # 3. Map physical wheel angle to your -100 to 100 PWM scale.
+        # Assume your RC car's maximum wheel turn is ~30 degrees.
+        # Adjust MAX_WHEEL_ANGLE if your car turns sharper or wider.
+        MAX_WHEEL_ANGLE = 30.0
+        pwm_val = (steering_angle_deg / MAX_WHEEL_ANGLE) * 100
+
+        # 4. Invert and clamp (Your code expects negative values for left turns)
+        steering_pwm = max(-100, min(100, -pwm_val))
+
+        return steering_pwm
 
     def steer_to_object(self, steering_angle):
         """
@@ -230,30 +240,18 @@ class ObstructionHandler:
         return 0.0
 
     def execute_deterrence(self, distance):
-        print("[DRIVING] Executing deterrence maneuver")
+        print("[DRIVING] Executing precise arc maneuver")
         current_steering = self.current_obstruction['steering_angle']
 
-        # Calculate total drive time upfront
-        total_drive_time = (distance / 650.0) * 0.8
-        total_drive_time = max(1.0, min(5.0, total_drive_time))
-        
-        # Phase 1: Turn and drive (0.5s of the total)
-        print(f"[DRIVING] Phase 1 - Driving turned for 0.5s")
+        # Calculate time needed to reach the object
+        # 650.0 is your estimated mm/s speed at 10% throttle. Tune this if it stops too short/long.
+        drive_time = (distance / 650.0)
+        drive_time = max(0.5, min(5.0, drive_time))
+
+        # Drive the calculated arc for the exact time needed
         self.car_controller.set_steering(current_steering)
         self.car_controller.set_throttle(10)
-        time.sleep(0.5)
-
-        # Phase 2: Straighten wheels (still driving!)
-        print(f"[DRIVING] Phase 2 - Straightening wheels")
-        self.car_controller.set_steering(0)
-        time.sleep(0.3)
-
-        # Phase 3: Continue driving for remaining time
-        remaining_time = total_drive_time - 0.5 - 0.3  # Subtract Phase 1 & 2
-        remaining_time = max(0.3, remaining_time)
-        
-        print(f"[DRIVING] Phase 3 - Driving straight for {remaining_time:.2f}s")
-        time.sleep(remaining_time)
+        time.sleep(drive_time)
 
         # Full stop
         self.car_controller.set_throttle(0)

@@ -16,6 +16,7 @@ esc.start(0)
 steer.start(0)
 
 DRIVE_DURATION = 2.0  # seconds
+STEERING_TRIM = 0.0  # Tweak this! E.g., +0.2 if it drifts right, -0.2 if it drifts left
 
     # Global to track last steering direction
 last_steering_angle = 0
@@ -28,24 +29,28 @@ def set_throttle(percent):
         duty = 7.5 + (percent / 200) * 5  
         esc.ChangeDutyCycle(duty)
 
+
 def set_steering(angle):
     global last_steering_angle
     angle = max(-100, min(100, angle))
-    
+
+    # Apply trim to the physical center (7.5)
+    true_center = 7.5 + STEERING_TRIM
+
     if angle == 0:
-        # Apply corrective pulse based on last direction
-        if last_steering_angle > 0:  # Was turning left
-            steer.ChangeDutyCycle(7.5 - 0.5)  # Negative pulse to help return
-        elif last_steering_angle < 0:  # Was turning right
-            steer.ChangeDutyCycle(7.5 + 0.5)  # Positive pulse to help return
+        if last_steering_angle > 0:
+            steer.ChangeDutyCycle(true_center - 0.5)
+        elif last_steering_angle < 0:
+            steer.ChangeDutyCycle(true_center + 0.5)
         else:
-            steer.ChangeDutyCycle(7.5)  # Normal center
+            steer.ChangeDutyCycle(true_center)
         time.sleep(0.1)
-        steer.ChangeDutyCycle(7.5)  # Settle to center
+        steer.ChangeDutyCycle(true_center)
     else:
-        duty = 7.5 + (angle / 200) * 5
+        # Include trim in the angle calculation
+        duty = true_center + (angle / 200) * 5
         steer.ChangeDutyCycle(duty)
-        last_steering_angle = angle  # Remember direction for next recenter
+        last_steering_angle = angle
 
 def drive_forward(throttle_percent=25, duration=2.0):
     """Drive forward for specified duration"""

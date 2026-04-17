@@ -246,10 +246,10 @@ class ObstructionHandler:
         # Phase 2: Straighten wheels (still driving!)
         print(f"[DRIVING] Phase 2 - Straightening wheels")
         self.car_controller.set_steering(0)
-        time.sleep(0.2)
+        time.sleep(0.3)
 
         # Phase 3: Continue driving for remaining time
-        remaining_time = total_drive_time - 0.5 - 0.2  # Subtract Phase 1 & 2
+        remaining_time = total_drive_time - 0.5 - 0.3  # Subtract Phase 1 & 2
         remaining_time = max(0.3, remaining_time)
         
         print(f"[DRIVING] Phase 3 - Driving straight for {remaining_time:.2f}s")

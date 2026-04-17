@@ -35,9 +35,9 @@ def set_steering(angle):
     if angle == 0:
         # Apply corrective pulse based on last direction
         if last_steering_angle > 0:  # Was turning left
-            steer.ChangeDutyCycle(7.5 + 0.5)  # Negative pulse to help return
+            steer.ChangeDutyCycle(7.5 - 0.5)  # Negative pulse to help return
         elif last_steering_angle < 0:  # Was turning right
-            steer.ChangeDutyCycle(7.5 - 0.5)  # Positive pulse to help return
+            steer.ChangeDutyCycle(7.5 + 0.5)  # Positive pulse to help return
         else:
             steer.ChangeDutyCycle(7.5)  # Normal center
         time.sleep(0.1)

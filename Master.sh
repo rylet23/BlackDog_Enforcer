@@ -26,7 +26,7 @@ echo -e "${YELLOW}Checking prerequisites...${NC}"
 
 if [ ! -f "$SCRIPTS_PATH/room_baseline.json" ]; then
     echo -e "${RED}✗ Baseline map not found!${NC}"
-    echo -e "${YELLOW}Run mapping first: ./run_integrated_system.sh --map${NC}"
+    echo -e "${YELLOW}Run mapping first: ./ProcessAndClient.sh --map${NC}"
     exit 1
 else
     echo -e "${GREEN}✓ Baseline map found${NC}"
@@ -63,7 +63,7 @@ if [ "$1" == "--map" ]; then
     
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ Baseline map created successfully!${NC}"
-        echo "You can now run: ./run_integrated_system.sh"
+        echo "You can now run: ./Master.sh"
     else
         echo -e "${RED}✗ Mapping failed${NC}"
         exit 1
@@ -73,7 +73,7 @@ fi
 
 # Handle help
 if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
-    echo "Usage: ./run_integrated_system.sh [OPTIONS] [SERVER_IP]"
+    echo "Usage: ./Master.sh [OPTIONS] [SERVER_IP]"
     echo ""
     echo "OPTIONS:"
     echo "  --map              Create/update baseline map"
@@ -83,9 +83,9 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     echo "  SERVER_IP          IP of Pi 5 server (default: 10.33.134.54)"
     echo ""
     echo "EXAMPLES:"
-    echo "  ./run_integrated_system.sh                    # Run with default IP"
-    echo "  ./run_integrated_system.sh 192.168.1.100     # Run with custom IP"
-    echo "  ./run_integrated_system.sh --map              # Create baseline"
+    echo "  ./Master.sh                    # Run with default IP"
+    echo "  ./Master.sh 192.168.1.100     # Run with custom IP"
+    echo "  ./Master.sh --map              # Create baseline"
     exit 0
 fi
 

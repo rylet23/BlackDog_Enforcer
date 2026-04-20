@@ -5,7 +5,7 @@ import math
 
 # --- Configuration ---
 MIN_DISTANCE = 100
-MAX_DISTANCE = 500
+MAX_DISTANCE = 2000
 MIN_QUALITY = 10
 GRID_SIZE = 50 
 

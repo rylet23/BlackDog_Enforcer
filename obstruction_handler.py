@@ -7,12 +7,14 @@ import time
 import sys
 from enum import Enum
 
+
 class ObstructionState(Enum):
     DETECTED = "detected"
     STEERING_TO_OBJECT = "steering_to_object"
     CLASSIFYING = "classifying"
     CONFIRMED = "confirmed"
     BYPASSED = "bypassed"
+
 
 class ObstructionHandler:
     def __init__(self, car_controller_module):
@@ -25,6 +27,52 @@ class ObstructionHandler:
         self.car_controller = car_controller_module
         self.current_obstruction = None
         self.state = None
+        self.last_handled_obstruction = None
+        self.last_handle_time = 0
+        self.debounce_threshold = 10.0  # seconds - increased to prevent overlap
+        self.distance_threshold = 200  # mm - larger threshold for "same object"
+        self.is_processing = False  # Flag to indicate we're currently processing an obstruction
+        self.camera_working = self.test_camera()
+        self.car_controller.arm_esc()
+
+    def test_camera(self):
+        """
+        Test if the camera is working by trying to capture a frame.
+        Returns True if camera is accessible, False otherwise.
+        """
+        print("[CAMERA TEST] Checking camera availability...")
+        try:
+            import cv2
+            cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+            if not cap.isOpened():
+                print("[CAMERA TEST] ERROR: Camera failed to open (cap.isOpened() returned False)")
+                return False
+
+            # Try to read a frame
+            ret, frame = cap.read()
+            cap.release()
+
+            if not ret:
+                print("[CAMERA TEST] ERROR: Failed to read frame from camera")
+                return False
+
+            print("[CAMERA TEST] SUCCESS: Camera is working and accessible")
+            return True
+
+        except ImportError:
+            print("[CAMERA TEST] ERROR: OpenCV (cv2) not installed")
+            return False
+        except Exception as e:
+            print(f"[CAMERA TEST] ERROR: {e}")
+            return False
+
+    def is_same_obstruction(self, x, y, distance):
+        if self.is_processing:
+            return True
+        time_since_last = time.time() - self.last_handle_time
+        if time_since_last < self.debounce_threshold:
+            return True  # block everything for full cooldown period
+        return False
 
     def handle_obstruction(self, x, y, distance, obs_type):
         """
@@ -37,63 +85,90 @@ class ObstructionHandler:
             distance: Distance from LIDAR (mm)
             obs_type: "NEW_OBJECT" or "MOVED_OBJECT"
         """
-        # Step 1: Calculate steering angle to face object
-        steering_angle = self.calculate_steering_angle(x, y)
+        # Skip if we're already handling the same obstruction
+        if self.is_same_obstruction(x, y, distance):
+            return
 
-        # Skip objects behind the rover (> +/-90 degrees from forward)
-        # These would require reversing which risks hitting walls
-        #raw_angle = math.degrees(math.atan2(y, x))
-        #if abs(raw_angle) > 90:
-            #print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f} degrees) - ignoring")
-            #return
+        # Mark that we're starting to process this obstruction
+        self.is_processing = True
 
-        self.current_obstruction = {
-            'x': x,
-            'y': y,
-            'distance': distance,
-            'type': obs_type,
-            'steering_angle': steering_angle
-        }
-        self.state = ObstructionState.DETECTED
-        print(f"\n[OBSTRUCTION DETECTED] Type: {obs_type} | Pos: ({x}, {y}) | Distance: {distance}mm")
+        try:
+            # Step 1: Calculate steering angle to face object
+            steering_angle = self.calculate_steering_angle(x, y)
 
-        # Step 2: Turn wheels to face the object
-        self.steer_to_object(steering_angle)
+            # Skip objects behind the rover (> +/-90 degrees from forward)
+            # These would require reversing which risks hitting walls
+            raw_angle = math.degrees(math.atan2(y, x))
+            # if abs(raw_angle) > 90:
+            #     print(f"[SKIP] Object is behind rover (angle: {raw_angle:.1f} degrees) - ignoring")
+            #     return
 
-        # Step 3: Classify -- wheels stay turned during this
-        is_real_obstruction = self.classify_with_cnn()
+            self.current_obstruction = {
+                'x': x,
+                'y': y,
+                'distance': distance,
+                'type': obs_type,
+                'steering_angle': steering_angle
+            }
+            self.state = ObstructionState.DETECTED
+            print(f"\n[OBSTRUCTION DETECTED] Type: {obs_type} | Pos: ({x}, {y}) | Distance: {distance}mm")
 
-        #If it ends up driving towards it consider adding to where if reverses back to its original point and then recenters the wheels
-        # Step 4: Drive toward it if confirmed, otherwise re-center and resume
-        if is_real_obstruction:
-            self.state = ObstructionState.CONFIRMED
-            print("[RESULT] Real obstruction confirmed - executing deterrence")
-            self.execute_deterrence(distance)
-        else:
-            self.state = ObstructionState.BYPASSED
-            self.car_controller.set_steering(0)  # Re-center if false positive
-            print("[RESULT] False positive - resuming normal operation")
+            # Step 2: Turn wheels to face the object
+            self.steer_to_object(steering_angle)
+
+            # Step 3: Classify -- wheels stay turned during this
+            is_real_obstruction = self.classify_with_cnn()
+
+            # Step 4: Drive toward it if confirmed, otherwise re-center and resume
+            if is_real_obstruction:
+                self.state = ObstructionState.CONFIRMED
+                print("[RESULT] Real obstruction confirmed - executing deterrence")
+                self.execute_deterrence(distance)
+            else:
+                self.state = ObstructionState.BYPASSED
+                self.car_controller.set_steering(0)  # Re-center if false positive
+                print("[RESULT] False positive - resuming normal operation")
+
+            # Record that we handled this obstruction
+            self.last_handled_obstruction = self.current_obstruction
+            self.last_handle_time = time.time()
+
+            # Wait a moment to let wheels settle before allowing new detections
+            time.sleep(1.0)
+
+        finally:
+            # Always mark processing as complete when done
+            self.is_processing = False
 
     def calculate_steering_angle(self, x, y):
         """
-        Convert obstruction position to steering angle (-100 to 100).
-
-        Args:
-            x: X position (mm, positive = forward)
-            y: Y position (mm, positive = left)
-            y: Y position (mm, positive = left)
-
-        Returns:
-            steering_angle: -100 (full left) to 100 (full right)
+        Convert obstruction position to an Ackermann steering arc angle.
         """
-        angle_rad = math.atan2(y, x)
-        angle_deg = math.degrees(angle_rad)
+        # --- CRITICAL: MEASURE YOUR CAR ---
+        # L is your car's wheelbase in mm (distance from front axle to rear axle).
+        L = 250.0
 
-        # Map +/-90 degree forward arc to +/-100 steering range
-        # Negate to flip left/right since y positive = left in LIDAR coords
-        steering_angle = max(-100, min(100, -angle_deg * (100 / 90)))
+        # Avoid division by zero if object is perfectly straight ahead
+        if y == 0:
+            return 0.0
 
-        return -steering_angle
+        # 1. Calculate required turning radius (R) to hit (x,y)
+        R = (x ** 2 + y ** 2) / (2 * y)
+
+        # 2. Calculate ideal physical steering angle in radians
+        steering_angle_rad = math.atan(L / R)
+        steering_angle_deg = math.degrees(steering_angle_rad)
+
+        # 3. Map physical wheel angle to your -100 to 100 PWM scale.
+        # Assume your RC car's maximum wheel turn is ~30 degrees.
+        # Adjust MAX_WHEEL_ANGLE if your car turns sharper or wider.
+        MAX_WHEEL_ANGLE = 30.0
+        pwm_val = (steering_angle_deg / MAX_WHEEL_ANGLE) * 100
+
+        # 4. Invert and clamp (Your code expects negative values for left turns)
+        steering_pwm = max(-100, min(100, -pwm_val))
+
+        return steering_pwm
 
     def steer_to_object(self, steering_angle):
         """
@@ -107,8 +182,9 @@ class ObstructionHandler:
         print(f"[STEERING] Turning to angle: {steering_angle:.1f} degrees")
 
         # Zero first so new angle is always applied from a known center position
-        self.car_controller.set_steering(0)
-        time.sleep(0.3)
+        # self.car_controller.set_steering(0) #Think this is causing the wheel twitching problem
+        # time.sleep(0.3)
+        self.car_controller.set_throttle(0)  # explicitly kill throttle before steering
         self.car_controller.set_steering(steering_angle)
         time.sleep(0.5)
 
@@ -121,7 +197,13 @@ class ObstructionHandler:
             bool: True if real obstruction, False if false positive
         """
         self.state = ObstructionState.CLASSIFYING
-        print("[CNN] Initiating classification...")
+        # print("[CNN] Initiating classification...")
+        print("[CNN] BYPASSED - treating as confirmed")
+        return True  # comment this out when ready to use real CNN
+
+        # Check if camera is working before attempting classification
+        if not self.camera_working:
+            print("[CNN] WARNING: Camera test failed at startup - classification may not work")
 
         try:
             result = subprocess.run(
@@ -131,7 +213,7 @@ class ObstructionHandler:
                 cwd='/home/blackdog1/BlackDog_Enforcer',
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=15
             )
 
             is_animal = 'ANIMAL_DETECTED' in result.stdout or result.returncode == 0
@@ -141,11 +223,11 @@ class ObstructionHandler:
             return is_animal
 
         except subprocess.TimeoutExpired:
-            print("[CNN] Classification timeout - treating as real threat")
-            return True
+            print("[CNN] Classification timeout - treating as UNCLEAR (defaulting to false)")
+            return False
         except Exception as e:
-            print(f"[CNN] Error during classification: {e} - treating as real threat")
-            return True
+            print(f"[CNN] Error during classification: {e} - treating as false positive")
+            return False
 
     def extract_confidence(self, cnn_output):
         """Extract confidence score from CNN output"""
@@ -158,31 +240,27 @@ class ObstructionHandler:
         return 0.0
 
     def execute_deterrence(self, distance):
-        """
-        Drive toward the detected obstruction to deter it.
-        Wheels are already facing the object from steer_to_object()
-        so just drive forward, then stop and re-center.
+        print("[DRIVING] Executing precise arc maneuver")
+        current_steering = self.current_obstruction['steering_angle']
 
-        Args:
-            distance: Distance to obstruction in mm
-        """
-        print("[DRIVING] Executing deterrence maneuver")
+        # Calculate time needed to reach the object
+        # 650.0 is your estimated mm/s speed at 10% throttle. Tune this if it stops too short/long.
+        drive_time = (distance / 650.0)
+        drive_time = max(0.5, min(5.0, drive_time))
 
-        # Wheels already turned -- just drive straight toward the object
-        # Scale duration to distance: clamp between 0.5s (close) and 3.0s (far)
-        drive_duration = max(0.5, min(3.0, distance / 500.0))
-        print(f"[DRIVING] Driving toward object for {drive_duration:.1f}s")
+        # Drive the calculated arc for the exact time needed
+        self.car_controller.set_steering(current_steering)
         self.car_controller.set_throttle(10)
-        time.sleep(drive_duration)
+        time.sleep(drive_time)
 
-        # Stop and re-center steering
+        # Full stop
         self.car_controller.set_throttle(0)
         self.car_controller.set_steering(0)
-
         print("[DRIVING] Deterrence complete - resuming patrol")
 
     def get_status(self):
         return {
             'state': self.state,
-            'current_obstruction': self.current_obstruction
+            'current_obstruction': self.current_obstruction,
+            'camera_working': self.camera_working
         }

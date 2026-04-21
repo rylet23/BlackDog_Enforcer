@@ -40,7 +40,7 @@ def classify_frame(model, frame, transform, threshold):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['gui', 'console', 'single_inference'], default='console')
-    parser.add_argument('--confidence-threshold', type=float, default=0.80)
+    parser.add_argument('--confidence-threshold', type=float, default=0.60)
     parser.add_argument('--model', default='animal_classifier.pth')
     args = parser.parse_args()
 

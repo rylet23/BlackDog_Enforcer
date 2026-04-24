@@ -16,19 +16,23 @@ esc.start(0)
 steer.start(0)
 
 DRIVE_DURATION = 2.0  # seconds
-STEERING_TRIM = 0  # Tweak this! E.g., +0.2 if it drifts right, -0.2 if it drifts left
+STEERING_TRIM = 0.0  # Tweak this! E.g., +0.2 if it drifts right, -0.2 if it drifts left
 
     # Global to track last steering direction
 last_steering_angle = 0
 
+#def set_throttle(percent):
+ #   percent = max(-100, min(100, percent))
+  #  if percent == 0:
+   #     esc.ChangeDutyCycle(0)
+    #else:
+     #   duty = 7.5 + (percent / 200) * 5  
+      #  esc.ChangeDutyCycle(duty)
 def set_throttle(percent):
     percent = max(-100, min(100, percent))
-    if percent == 0:
-        esc.ChangeDutyCycle(0)
-    else:
-        duty = 7.5 + (percent / 200) * 5  
-        esc.ChangeDutyCycle(duty)
-
+    # Remove the 'if percent == 0' block entirely
+    duty = 7.5 + (percent / 200) * 5 
+    esc.ChangeDutyCycle(duty)
 
 def set_steering(angle):
     global last_steering_angle
@@ -38,23 +42,19 @@ def set_steering(angle):
     true_center = 7.5 + STEERING_TRIM
 
     if angle == 0:
-        if last_steering_angle > 0:
-            steer.ChangeDutyCycle(true_center - 0.5)
-        elif last_steering_angle < 0:
-            steer.ChangeDutyCycle(true_center + 0.5)
-        else:
-            steer.ChangeDutyCycle(true_center)
-        time.sleep(0.1)
+        # Smoothly return to center without oscillation
         steer.ChangeDutyCycle(true_center)
+        last_steering_angle = 0
     else:
         # Include trim in the angle calculation
         duty = true_center + (angle / 200) * 5
         steer.ChangeDutyCycle(duty)
         last_steering_angle = angle
 
-def drive_forward(throttle_percent=25, duration=2.0):
+def drive_forward(throttle_percent=10, duration=2.0):
     """Drive forward for specified duration"""
     set_throttle(throttle_percent)
+    #set_throttle(80)
     time.sleep(duration)
     set_throttle(0)
 

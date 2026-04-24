@@ -7,7 +7,8 @@ import time
 import sys
 import os
 from enum import Enum
-
+#import NoiseGen
+#noise_controller = NoiseGen.NoiseManager(pin=27)
 
 class ObstructionState(Enum):
     DETECTED = "detected"
@@ -98,6 +99,7 @@ class ObstructionHandler:
             if is_real_obstruction:
                 self.state = ObstructionState.CONFIRMED
                 print("[RESULT] Real obstruction confirmed - executing deterrence")
+ #               noise_controller.set_state(1, duration=10)
                 self.execute_deterrence(distance)
             else:
                 self.state = ObstructionState.BYPASSED
@@ -150,7 +152,7 @@ class ObstructionHandler:
                 [
                     'python3', self.cnn_script,
                     '--mode', 'single_inference',
-                    '--confidence-threshold', '0.80',
+                    '--confidence-threshold', '0.50',
                     '--model', self.model_path
                 ],
                 cwd=self.script_dir,
@@ -191,33 +193,98 @@ class ObstructionHandler:
             pass
         return 0.0
 
+  #  def execute_deterrence(self, distance):
+ #       print("[DRIVING] Executing deterrence maneuver")
+#
+  #      TURN_DURATION   = 0.5
+ #       SETTLE_DURATION = 0.3
+#
+  #      total_duration    = max(0.5, min(3.0, distance / 1000.0))
+ #       straight_duration = max(0.0, total_duration - TURN_DURATION)
+#
+   #     print(f"[DRIVING] Phase 1 - Driving turned for {TURN_DURATION:.1f}s")
+  #      self.car_controller.set_throttle(10)
+ #       time.sleep(TURN_DURATION)
+#
+    #    print(f"[DRIVING] Phase 2 - Stopped, recentering wheels ({SETTLE_DURATION:.1f}s)")
+   #     self.car_controller.set_throttle(0)
+  #      self.car_controller.set_steering(0)
+ #       time.sleep(SETTLE_DURATION)
+#
+    #    if straight_duration > 0:
+   #         print(f"[DRIVING] Phase 3 - Driving straight for {straight_duration:.1f}s")
+  #          self.car_controller.set_throttle(10)
+ #           time.sleep(straight_duration)
+#
+  #      self.car_controller.set_throttle(0)
+ #       self.car_controller.set_steering(0)
+#        print("[DRIVING] Deterrence complete - resuming patrol")
+
     def execute_deterrence(self, distance):
         print("[DRIVING] Executing deterrence maneuver")
 
-        TURN_DURATION   = 0.5
-        SETTLE_DURATION = 0.3
+        # Increased to 20% - just enough to move smoothly
+        DRIVE_THROTTLE = 20  
+        
+        # Calculate durations
+        total_duration = max(1.0, min(3.0, distance / 800.0))
+        turn_phase = 0.7 
+        straight_phase = total_duration - turn_phase
 
-        total_duration    = max(0.5, min(3.0, distance / 1000.0))
-        straight_duration = max(0.0, total_duration - TURN_DURATION)
+        # Phase 1: The Move
+        print(f"[DRIVING] Phase 1 - Initial Charge ({turn_phase:.1f}s)")
+        self.car_controller.set_throttle(DRIVE_THROTTLE)
+        time.sleep(turn_phase)
 
-        print(f"[DRIVING] Phase 1 - Driving turned for {TURN_DURATION:.1f}s")
-        self.car_controller.set_throttle(10)
-        time.sleep(TURN_DURATION)
+        # Phase 2: The Glide (NO STOPPING)
+        print("[DRIVING] Phase 2 - Straightening wheels while rolling")
+        self.car_controller.set_steering(0)
+        # We stay at DRIVE_THROTTLE here so there is no jerk!
+        time.sleep(0.4) 
 
-        print(f"[DRIVING] Phase 2 - Stopped, recentering wheels ({SETTLE_DURATION:.1f}s)")
+        # Phase 3: The Follow-through
+        if straight_phase > 0:
+            print(f"[DRIVING] Phase 3 - Straight finish ({straight_phase:.1f}s)")
+            self.car_controller.set_throttle(DRIVE_THROTTLE)
+            time.sleep(straight_phase)
+
+        # Final Stop
         self.car_controller.set_throttle(0)
         self.car_controller.set_steering(0)
-        time.sleep(SETTLE_DURATION)
+        print("[DRIVING] Deterrence complete")
+#    def execute_deterrence(self, distance):
+ #       print("[DRIVING] Executing deterrence maneuver")
 
-        if straight_duration > 0:
-            print(f"[DRIVING] Phase 3 - Driving straight for {straight_duration:.1f}s")
-            self.car_controller.set_throttle(10)
-            time.sleep(straight_duration)
+        # --- TUNING CONSTANTS ---
+        # Bump throttle to 40% to ensure it actually moves the car's weight
+  #      DET_THROTTLE = 22
+   #     TURN_DURATION = 0.5  # Increased from 0.5 to get moving
+        
+        # Calculate straight duration based on distance (min 1s, max 3s)
+    #    total_duration = max(1.5, min(4.0, distance / 500.0))
+     #   straight_duration = max(1.0, total_duration - TURN_DURATION)
 
-        self.car_controller.set_throttle(0)
-        self.car_controller.set_steering(0)
-        print("[DRIVING] Deterrence complete - resuming patrol")
+        # Phase 1: The Initial Turn & Charge
+      #  print(f"[DRIVING] Phase 1 - Charging at Angle ({TURN_DURATION:.1f}s)")
+       # self.car_controller.set_throttle(DET_THROTTLE)
+        #time.sleep(TURN_DURATION)
 
+        # Phase 2: Straighten out WITHOUT stopping
+        #print(f"[DRIVING] Phase 2 - Straightening wheels while moving")
+        # Notice: We do NOT set throttle to 0 here. We keep the momentum!
+        #self.car_controller.set_steering(0)
+        #time.sleep(0.4) # Brief pause just for the servo to physically move
+
+        # Phase 3: The Final Push
+        #if straight_duration > 0:
+         #   print(f"[DRIVING] Phase 3 - Full speed straight ({straight_duration:.1f}s)")
+          #  self.car_controller.set_throttle(DET_THROTTLE + 5) # Extra kick for the finish
+           # time.sleep(straight_duration)
+
+        # Final Stop
+        #self.car_controller.set_throttle(0)
+        #self.car_controller.set_steering(0)
+        #print("[DRIVING] Deterrence complete - resuming patrol")
     def get_status(self):
         return {
             'state': self.state,

@@ -5,6 +5,7 @@ import math
 import Car_Controller
 from obstruction_handler import ObstructionHandler
 import NoiseGen
+noise_controller = NoiseGen.NoiseManager(pin=27)
 # --- Configuration ---
 MIN_QUALITY = 10
 CHANGE_THRESHOLD = 150
@@ -22,7 +23,8 @@ def trigger_cnn_model(object_data):
     print(f"!!! OBJECT DETECTED: {object_data['type']} !!!")
     print(f"Location: ({object_data['x']}, {object_data['y']}) | Size: {object_data['w']}x{object_data['h']}mm")
     # Your CNN model logic goes here
-    NoiseGen(1);
+    #noise_controller.set_state(1, duration=10)
+    #NoiseGen.NoiseGen(1)
 
 # Initialize obstruction handler with car controller
 obstruction_handler = ObstructionHandler(Car_Controller)

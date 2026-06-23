@@ -22,7 +22,7 @@ The BlackDog Enforcer is our senior capstone project: an autonomous RC vehicle t
 - **Colin Becker**
 
 **Faculty Advisor:** Dr. Towhidnejad  
-**Project Duration:** Fall 2025 - Spring 2026
+**Project Duration:** Fall 2025 - Spring 2026 (Completed)
 
 ## Problem Statement
 
@@ -307,5 +307,5 @@ For questions about this project, please contact the team through GitHub issues 
 
 ---
 
-**Project Status:** Active Development (Spring 2026)  
+**Project Status:** Completed (Spring 2026)  
 **Last Updated:** June 2026

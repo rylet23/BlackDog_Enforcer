@@ -3,6 +3,14 @@
 **Senior Design Project - Embry-Riddle Aeronautical University**  
 An autonomous wildlife deterrence system for airport runway safety
 
+## Demo Videos
+
+| | Video | Description |
+|---|---|---|
+| 🎬 | [CNN Wildlife Classification](https://www.linkedin.com/posts/cole-turner-erau_machinelearning-computervision-cnn-ugcPost-7455418489194074112-YT0m/) | Live CNN-based animal detection and species classification using the ZED 2i stereo camera |
+| 🎬 | [Autonomous Navigation Demo](https://www.linkedin.com/posts/cole-turner-erau_engineering-seniordesign-robotics-ugcPost-7457917925879033856-bSv4/) | BlackDog Enforcer navigating autonomously toward a detected target using LiDAR data |
+| 🎬 | [Full System Field Test](https://www.linkedin.com/posts/cole-turner-erau_aviation-robotics-machinelearning-ugcPost-7459388271811391488-7WNE/) | End-to-end system demonstration — detection, classification, navigation, and deterrence |
+
 ## Project Overview
 
 The BlackDog Enforcer is our senior capstone project: an autonomous RC vehicle that uses LiDAR and computer vision to detect and deter wildlife from airport runways. The system aims to improve safety for passengers, pilots, and ground crews while protecting wildlife through non-lethal deterrence methods.
@@ -200,14 +208,14 @@ FORWARD_ANGLE_RANGE = 30      # Forward cone (degrees)
 - [x] ZED camera classification
 - [x] Motor control integration
 - [x] CNN-based animal classification
+- [x] Autonomous navigation algorithm
+- [x] Field testing with live targets
 
 ### In Progress 
-- [ ] Autonomous navigation algorithm
 - [ ] Audio deterrent system
-- [ ] Field testing procedures
+- [ ] Multi-target tracking
 
 ### Planned 
-- [ ] Multi-target tracking
 - [ ] Event logging system
 - [ ] Battery monitoring
 - [ ] FAA compliance testing
@@ -300,4 +308,4 @@ For questions about this project, please contact the team through GitHub issues 
 ---
 
 **Project Status:** Active Development (Spring 2026)  
-**Last Updated:** February 2026
+**Last Updated:** June 2026

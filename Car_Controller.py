@@ -1,90 +1,95 @@
-import sys
-import json
+import RPi.GPIO as GPIO
+import time
 
-# Configuration
-STOP_DISTANCE = 200  # mm - stop if closer than this
-FORWARD_ANGLE_RANGE = 30  # degrees - consider angles within ±30° as "forward"
+# --- Pin setup ---
+ESC_PIN = 17
+STEER_PIN = 18
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(ESC_PIN, GPIO.OUT)
+GPIO.setup(STEER_PIN, GPIO.OUT)
 
+# --- PWM setup (50Hz for both) ---
+esc = GPIO.PWM(ESC_PIN, 50)
+steer = GPIO.PWM(STEER_PIN, 50)
+esc.start(0)
+steer.start(0)
 
-def calculate_steering(angle):
-    """
-    Calculate steering direction based on target angle.
-    Returns: 'forward', 'left', 'right', or 'backward'
-    """
-    # Normalize angle to -180 to 180 range
-    if angle > 180:
-        angle = angle - 360
+DRIVE_DURATION = 2.0  # seconds
+STEERING_TRIM = 0  # Tweak this! E.g., +0.2 if it drifts right, -0.2 if it drifts left
 
-    if abs(angle) <= FORWARD_ANGLE_RANGE:
-        return 'forward'
-    elif 90 <= abs(angle) <= 270:
-        return 'backward'
-    elif angle < 0:
-        return 'left'
+    # Global to track last steering direction
+last_steering_angle = 0
+
+def set_throttle(percent):
+    percent = max(-100, min(100, percent))
+    if percent == 0:
+        esc.ChangeDutyCycle(0)
     else:
-        return 'right'
+        duty = 7.5 + (percent / 200) * 5  
+        esc.ChangeDutyCycle(duty)
 
 
-def control_car(target_data):
-    """
-    Make driving decisions based on target data.
-    """
-    if target_data['status'] == 'no_target':
-        print(f"No target detected. Valid points: {target_data['valid_points']}", file=sys.stderr)
-        # TODO: Add your "search" behavior here
-        # e.g., slowly rotate to scan for targets
-        return
+def set_steering(angle):
+    global last_steering_angle
+    angle = max(-100, min(100, angle))
 
-    angle = target_data['angle']
-    distance = target_data['distance']
+    # Apply trim to the physical center (7.5)
+    true_center = 7.5 + STEERING_TRIM
 
-#    print(f"Target: {angle:.1f}° at {distance:.1f}mm (Q:{target_data['quality']})", file=sys.stderr)
-
-    # Decision logic
-    if distance < STOP_DISTANCE:
-        action = 'stop'
-        print("  ACTION: STOP - Too close!", file=sys.stderr)
-        # TODO: Add your stop code here
+    if angle == 0:
+        if last_steering_angle > 0:
+            steer.ChangeDutyCycle(true_center - 0.5)
+        elif last_steering_angle < 0:
+            steer.ChangeDutyCycle(true_center + 0.5)
+        else:
+            steer.ChangeDutyCycle(true_center)
+        time.sleep(0.1)
+        steer.ChangeDutyCycle(true_center)
     else:
-        direction = calculate_steering(angle)
-        action = direction
- #       print(f"  ACTION: {direction.upper()}", file=sys.stderr)
-        # TODO: Add your motor control code here
-        # if direction == 'forward':
-        #     # drive forward
-        # elif direction == 'left':
-        #     # turn left
-        # elif direction == 'right':
-        #     # turn right
+        # Include trim in the angle calculation
+        duty = true_center + (angle / 200) * 5
+        steer.ChangeDutyCycle(duty)
+        last_steering_angle = angle
 
-    # Output action as JSON for potential logging/chaining
-    output = {
-        'action': action,
-        'target_angle': angle,
-        'target_distance': distance
-    }
-#    print(json.dumps(output))
-    sys.stdout.flush()
+def drive_forward(throttle_percent=25, duration=2.0):
+    """Drive forward for specified duration"""
+    set_throttle(throttle_percent)
+    time.sleep(duration)
+    set_throttle(0)
 
+def turn_to_angle(steering_angle, duration=0.5):
+    """Turn to specific angle"""
+    set_steering(steering_angle)
+    time.sleep(duration)
+    set_steering(0)
 
-def main():
-    """
-    Read processed lidar data (JSON) from stdin and control car.
-    Usage: ./ProcessAndClient.sh | python3 lidar_processor.py | python3 car_controller.py
-    """
-#    print("Car controller started. Waiting for target data...", file=sys.stderr)
+def stop_all():
+    """Emergency stop"""
+    set_throttle(0)
+    set_steering(0)
 
-    try:
-        for line in sys.stdin:
-            try:
-                target_data = json.loads(line.strip())
-                control_car(target_data)
-            except json.JSONDecodeError:
-                print(f"Invalid JSON: {line}", file=sys.stderr)
+def arm_esc():
+    """Arm the ESC - call this once before using throttle"""
+    print("Arming ESC...")
+    set_throttle(0)
+    set_steering(0)
+    time.sleep(3)
+    print("ESC armed.")
 
-    except KeyboardInterrupt:
-        print("\nController stopped", file=sys.stderr)
+def cleanup():
+    """Cleanly shut down PWM and GPIO - call only when fully done"""
+    esc.stop()
+    steer.stop()
+    GPIO.cleanup()
 
 
+# --- Only runs when executed directly, NOT when imported ---
+# This prevents GPIO.cleanup() from destroying PWM channels
+# when Car_Controller is imported by obstruction_handler or other modules
 if __name__ == "__main__":
-    main()
+    try:
+        arm_esc()
+        print("Car_Controller ready.")
+    finally:
+        cleanup()

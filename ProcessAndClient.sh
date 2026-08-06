@@ -24,6 +24,11 @@ fi
 
 # 2. Check for Monitoring Mode
 echo -e "${GREEN}=== MODE: MONITORING & ENFORCING ===${NC}"
+echo -e "${YELLOW}LiDAR will detect obstructions and trigger:${NC}"
+echo -e "  1. Steering car to face object"
+echo -e "  2. Running CNN classification"
+echo -e "  3. Executing avoidance if confirmed"
+echo ""
 
 # Check if baseline exists before starting
 if [ ! -f "room_baseline.json" ]; then

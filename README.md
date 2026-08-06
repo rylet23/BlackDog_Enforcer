@@ -3,6 +3,14 @@
 **Senior Design Project - Embry-Riddle Aeronautical University**  
 An autonomous wildlife deterrence system for airport runway safety
 
+## Demo Videos
+
+| | Video | Description |
+|---|---|---|
+| 🎬 | [CNN Wildlife Classification](https://www.linkedin.com/posts/cole-turner-erau_machinelearning-computervision-cnn-ugcPost-7455418489194074112-YT0m/) | Live CNN-based animal detection and species classification using the ZED 2i stereo camera |
+| 🎬 | [Autonomous Navigation Demo](https://www.linkedin.com/posts/cole-turner-erau_engineering-seniordesign-robotics-ugcPost-7457917925879033856-bSv4/) | BlackDog Enforcer navigating autonomously toward a detected target using LiDAR data |
+| 🎬 | [Full System Field Test](https://www.linkedin.com/posts/cole-turner-erau_aviation-robotics-machinelearning-ugcPost-7459388271811391488-7WNE/) | End-to-end system demonstration — detection, classification, navigation, and deterrence |
+
 ## Project Overview
 
 The BlackDog Enforcer is our senior capstone project: an autonomous RC vehicle that uses LiDAR and computer vision to detect and deter wildlife from airport runways. The system aims to improve safety for passengers, pilots, and ground crews while protecting wildlife through non-lethal deterrence methods.
@@ -10,11 +18,11 @@ The BlackDog Enforcer is our senior capstone project: an autonomous RC vehicle t
 ### Team Members
 - **Ryle Traub** - [@rylet23](https://github.com/rylet23)
 - **Cole Turner** - [@Cturner-24](https://github.com/Cturner-24)
-- **Robert Chaney**
+- **Robert Chaney** - [@ChaneyErau](https://github.com/chaneyerau)
 - **Colin Becker**
 
 **Faculty Advisor:** Dr. Towhidnejad  
-**Project Duration:** Fall 2025 - Spring 2026
+**Project Duration:** Fall 2025 - Spring 2026 (Completed)
 
 ## Problem Statement
 
@@ -178,7 +186,7 @@ BAUDRATE="115200"             # A2M8 default
 Edit `Lidar_Data_Processor.py`:
 ```python
 MIN_DISTANCE = 100      # Minimum detection (mm)
-MAX_DISTANCE = 3000     # Maximum detection (mm)
+MAX_DISTANCE = 500     # Maximum detection (mm)
 MIN_QUALITY = 10        # Minimum scan quality
 ```
 
@@ -200,14 +208,14 @@ FORWARD_ANGLE_RANGE = 30      # Forward cone (degrees)
 - [x] ZED camera classification
 - [x] Motor control integration
 - [x] CNN-based animal classification
+- [x] Autonomous navigation algorithm
+- [x] Field testing with live targets
 
 ### In Progress 
-- [ ] Autonomous navigation algorithm
 - [ ] Audio deterrent system
-- [ ] Field testing procedures
+- [ ] Multi-target tracking
 
 ### Planned 
-- [ ] Multi-target tracking
 - [ ] Event logging system
 - [ ] Battery monitoring
 - [ ] FAA compliance testing
@@ -299,5 +307,5 @@ For questions about this project, please contact the team through GitHub issues 
 
 ---
 
-**Project Status:** Active Development (Spring 2026)  
-**Last Updated:** February 2026
+**Project Status:** Completed (Spring 2026)  
+**Last Updated:** June 2026

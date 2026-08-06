@@ -1,9 +1,9 @@
-import RPI.GPIO as GPIO #throws an error if not on a Raspberry pi
+import RPi.GPIO as GPIO #throws an error if not on a Raspberry pi
 import time
 
 # --- Pin setup ---
-ESC_PIN = 18      # throttle
-STEER_PIN = 17    # steering servo
+ESC_PIN = 17      # throttle
+STEER_PIN = 18    # steering servo
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(ESC_PIN, GPIO.OUT)
@@ -37,8 +37,8 @@ try:
     time.sleep(1)
 
     print("Forward 25%, turn right")
-    set_throttle(25)
-    set_steering(50)
+    set_throttle(10)
+    set_steering(-50)
     time.sleep(2)
 
     print("Straight ahead")
@@ -46,12 +46,12 @@ try:
     time.sleep(1)
 
     print("Turn left")
-    set_steering(-50)
+    set_steering(50)
     time.sleep(2)
 
     print("Stop")
-    set_throttle(0)
     set_steering(0)
+    set_throttle(0)
     time.sleep(1)
 
 finally:
